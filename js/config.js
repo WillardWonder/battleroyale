@@ -33,4 +33,4 @@ export const LOOT_INFO = {
 };
 // Zone ("the bell"): [wait seconds, shrink seconds, radius after shrink, damage per second outside]
 export const ZONE_PHASES = [[40, 45, 105, 2], [28, 40, 62, 4], [22, 34, 32, 6], [18, 28, 12, 9], [12, 25, 0, 14]];
-export const ZONE_START_R = 190;
+export const ZONE_START_R = 230;

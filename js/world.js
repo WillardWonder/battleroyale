@@ -303,9 +303,8 @@ export class World {
     const L = this.B('line'), W = lin(0xe9e9e4), Y = lin(0xe8b923);
     const strip = (x0, z0, x1, z1, col = W) => L.quad([x0, 0.02, z1, x1, 0.02, z1, x1, 0.02, z0, x0, 0.02, z0], [0, 1, 0], [0, 0, 1, 0, 1, 1, 0, 1], col);
     for (const st of this.furn().stalls) { if (st.X) strip(st.x - 0.06, st.z, st.x + 0.06, st.z + 5); else strip(st.x, st.z - 0.06, st.x + 5, st.z + 0.06); }
-    for (let x = -138; x < 138; x += 9) strip(x, -112.1, x + 4.5, -111.9, Y);
+    for (let x = -138; x < 138; x += 9) strip(x, -129.6, x + 4.5, -129.4, Y);
     const rect = (x0, z0, x1, z1, col = W, t = 0.1) => { strip(x0, z0, x1, z0 + t, col); strip(x0, z1 - t, x1, z1, col); strip(x0, z0, x0 + t, z1, col); strip(x1 - t, z0, x1, z1, col); };
-    rect(31, 27, 47, 37, lin(0x2a6fb0), 0.08);
   }
   furn() { return (this._furn ??= furnish(this.campus)); }
 
@@ -434,7 +433,7 @@ export class World {
     pine.geom(new THREE.CylinderGeometry(0.14, 0.22, 1.4, 6), m.makeTranslation(0, 0.7, 0), 0x4a3526);
     [[1.7, 2.4, 1.2], [1.35, 2.2, 2.5], [1.0, 2.0, 3.7], [0.6, 1.7, 4.8]].forEach(([r, h, y]) => pine.geom(new THREE.ConeGeometry(r, h, 7), m.makeTranslation(0, y + h / 2, 0), 0x2f5d3a));
     const ring = [];
-    for (let i = 0; i < 230; i++) { const a = (i / 230) * Math.PI * 2 + Math.sin(i * 7.1) * 0.02, rx = 148 + Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1) * 34, rz = 128 + Math.abs(Math.sin(i * 78.233) * 43758.5453 % 1) * 34; ring.push({ x: Math.cos(a) * rx, z: Math.sin(a) * rz, s: 1.2 + Math.abs(Math.sin(i * 3.3)) * 0.9, k: i % 3 === 0 ? 1 : 0, c: i % 6, a: i, far: 1 }); }
+    for (let i = 0; i < 230; i++) { const a = (i / 230) * Math.PI * 2 + Math.sin(i * 7.1) * 0.02, rx = 168 + Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1) * 34, rz = 148 + Math.abs(Math.sin(i * 78.233) * 43758.5453 % 1) * 34; ring.push({ x: Math.cos(a) * rx, z: Math.sin(a) * rz, s: 1.2 + Math.abs(Math.sin(i * 3.3)) * 0.9, k: i % 3 === 0 ? 1 : 0, c: i % 6, a: i, far: 1 }); }
     const all = trees.concat(ring), hard = all.filter((t) => !t.k), pines = all.filter((t) => t.k);
     const q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), p = new THREE.Vector3(), s = new THREE.Vector3(), col = new THREE.Color();
     const mk = (geo, mat, list, tint) => {

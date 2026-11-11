@@ -4,8 +4,8 @@
 // To change the map: edit the R()/H()/strip() calls, EXITS and GROUND below. Walls, doors, windows,
 // furniture, the minimap and collision are all generated from this file.
 
-export const GX = 280, GZ = 240, OX = -140, OZ = -120;
-export const BOUNDS = { x0: -137, x1: 137, z0: -117, z1: 117 };
+export const GX = 320, GZ = 280, OX = -160, OZ = -140;
+export const BOUNDS = { x0: -157, x1: 157, z0: -137, z1: 137 };
 
 // ceil = interior ceiling height, h = exterior wall height, grp = hallway group (shared corridors)
 export const BLD = {
@@ -44,7 +44,8 @@ const strip = (b, x0, z0, x1, z1, ax, defs) => {
    Coordinates below are pixels on that map image (north is up, Campus Drive along the top);
    P() converts them to metres at 0.27 m per pixel. Each building's footprint is painted as hallway first,
    then rooms are placed on top — whatever is left over is corridor. */
-const X = (px) => Math.round((px - 680) * 0.27), Z = (py) => Math.round((py - 475) * 0.27);
+const SCALE = 0.34; // metres per map pixel — change this one number to rescale the whole building
+const X = (px) => Math.round((px - 680) * SCALE), Z = (py) => Math.round((py - 475) * SCALE);
 const F = (b, x0, y0, x1, y1, name) => H(b, X(x0), Z(y0), X(x1), Z(y1), name);
 const P = (b, x0, y0, x1, y1, type, name) => { const a = X(x0), c = Z(y0); R(b, a, c, Math.max(a + 3, X(x1)), Math.max(c + 3, Z(y1)), type, name); };
 // footprints (corridors)
@@ -101,16 +102,15 @@ export const EXITS = [
 ];
 
 export const GTYPES = ['grass', 'road', 'lot', 'conc', 'sand', 'court', 'field'];
+const GP = (t, x0, y0, x1, y1) => [t, X(x0), Z(y0), X(x1), Z(y1)];
+const LOTPX = [['Parking Lot D', 190, 92, 330, 140], ['Parking Lot C', 105, 215, 195, 330], ['Parking Lot B', 110, 440, 215, 575], ['Parking Lot A', 285, 735, 440, 868], ['Parking Lot E', 830, 95, 980, 200], ['South Lot', 480, 834, 780, 870], ['East Lot', 1112, 380, 1165, 700]];
 const GROUND = [
-  ['road', -140, -116, 140, -108], ['conc', -140, -107, 140, -105],
-  ['lot', -134, -104, -64, -90], ['lot', -137, -72, -118, -32], ['lot', -137, -6, -118, 42], ['lot', -114, 62, -64, 112], ['lot', 36, -103, 112, -72], ['lot', -52, 98, 44, 114], ['lot', 118, -30, 136, 70],
-  ['conc', -117, -32, -113, -20], ['conc', -54, -17, 70, -15], ['conc', -22, -17, -19, 54], ['conc', -54, 18, 70, 20], ['conc', -2, 14, 10, 26], ['sand', 30, 26, 48, 38], ['conc', 16, 0, 24, 8],
+  ['road', -160, -134, 160, -125], ['conc', -160, -124, 160, -122],
+  ...LOTPX.map(([, a, b, c, d]) => GP('lot', a, b, c, d)),
+  GP('conc', 225, 378, 262, 390), GP('conc', 480, 412, 940, 418), GP('conc', 600, 412, 608, 678), GP('conc', 480, 540, 940, 546), GP('conc', 680, 522, 716, 558), GP('sand', 790, 570, 850, 612), GP('conc', 740, 478, 764, 502),
 ];
-export const LOTS = [
-  { name: 'Parking Lot D', x0: -134, z0: -104, x1: -64, z1: -90 }, { name: 'Parking Lot C', x0: -137, z0: -72, x1: -118, z1: -32 }, { name: 'Parking Lot B', x0: -137, z0: -6, x1: -118, z1: 42 },
-  { name: 'Parking Lot A', x0: -114, z0: 62, x1: -64, z1: 112 }, { name: 'Parking Lot E', x0: 36, z0: -103, x1: 112, z1: -72 }, { name: 'South Lot', x0: -52, z0: 98, x1: 44, z1: 114 }, { name: 'East Lot', x0: 118, z0: -30, x1: 136, z1: 70 },
-];
-const ZONES = [...LOTS, { name: 'Courtyard', x0: -56, z0: -18, x1: 72, z1: 56 }, { name: 'Campus Drive', x0: -140, z0: -118, x1: 140, z1: -104 }];
+export const LOTS = LOTPX.map(([name, a, b, c, d]) => ({ name, x0: X(a), z0: Z(b), x1: X(c), z1: Z(d) }));
+const ZONES = [...LOTS, { name: 'Courtyard', x0: X(470), z0: Z(407), x1: X(945), z1: Z(680) }, { name: 'Campus Drive', x0: -160, z0: -136, x1: 160, z1: -121 }];
 // Hide & Seek play areas (map pixels → metres). tier: 0 small (≤5 players), 1 medium (≤12), 2 large (≤24).
 const AR = (n, t, x0, y0, x1, y1) => ({ n, t, r: [X(x0) - 1, Z(y0) - 1, X(x1) + 1, Z(y1) + 1] });
 export const ARENAS = [
@@ -120,7 +120,7 @@ export const ARENAS = [
   AR('Main Building', 2, 262, 130, 1100, 820),
 ];
 export const SPECIAL = {
-  gazebo: { x: 4, z: 20 }, firepit: { x: 20, z: 4 }, sign: { x: -124, z: -40 }, net: { x: 39, z0: 26, z1: 38 },
+  gazebo: { x: X(698), z: Z(540) }, firepit: { x: X(752), z: Z(490) }, sign: { x: X(232), z: Z(350) }, net: { x: X(820), z0: Z(570) + 1, z1: Z(612) - 1 },
   teacherRoom: 'A134 iTEC',
 };
 
@@ -136,6 +136,24 @@ export function buildCampus() {
     r.id = id;
     for (let z = r.z0; z < r.z1; z++) for (let x = r.x0; x < r.x1; x++) {
       const k = (z - OZ) * GX + (x - OX); roomGrid[k] = i; idGrid[k] = id;
+    }
+  }
+  // The map was traced room by room, which leaves thin gaps between rooms. Those are not real corridors:
+  // keep hallway only where it is at least 3 m wide, and let neighbouring rooms grow into everything else.
+  {
+    const isHall = (k) => idGrid[k] > 0 && idGrid[k] < 1000, keep = new Uint8Array(N);
+    for (let j = 1; j < GZ - 1; j++) for (let i = 1; i < GX - 1; i++) {
+      let ok = true; for (let dj = -1; dj <= 1 && ok; dj++) for (let di = -1; di <= 1; di++) if (!isHall((j + dj) * GX + i + di)) { ok = false; break; }
+      if (ok) for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) keep[(j + dj) * GX + i + di] = 1;
+    }
+    for (let pass = 0; pass < 12; pass++) {
+      const next = [];
+      for (let j = 1; j < GZ - 1; j++) for (let i = 1; i < GX - 1; i++) {
+        const k = j * GX + i; if (!isHall(k) || keep[k]) continue;
+        for (const nk of [k - 1, k + 1, k - GX, k + GX]) if (idGrid[nk] >= 1000) { next.push([k, nk]); break; }
+      }
+      if (!next.length) break;
+      for (const [k, nk] of next) { idGrid[k] = idGrid[nk]; roomGrid[k] = roomGrid[nk]; }
     }
   }
   for (const [t, x0, z0, x1, z1] of GROUND) {
@@ -190,33 +208,50 @@ export function buildCampus() {
   const isHallId = (id) => id > 0 && id < 1000;
   for (let ri = 1; ri < rooms.length; ri++) {
     const r = rooms[ri]; if (r.hall) continue;
-    const sides = [
-      { o: 'h', c: r.z0, a: r.x0, b: r.x1, nb: (t) => idOf(cell(t - OX, r.z0 - 1 - OZ)), side: 1 },
-      { o: 'h', c: r.z1, a: r.x0, b: r.x1, nb: (t) => idOf(cell(t - OX, r.z1 - OZ)), side: -1 },
-      { o: 'v', c: r.x0, a: r.z0, b: r.z1, nb: (t) => idOf(cell(r.x0 - 1 - OX, t - OZ)), side: 1 },
-      { o: 'v', c: r.x1, a: r.z0, b: r.z1, nb: (t) => idOf(cell(r.x1 - OX, t - OZ)), side: -1 },
-    ];
+    // walk the room's real outline (rooms may have grown past their traced rectangle) and group shared wall runs by neighbour
+    const groups = new Map();
+    const add = (o, c, t, other, side) => { if (other <= 0 || other === r.id) return; const k = `${other}|${o}|${c}|${side}`; let g = groups.get(k); if (!g) groups.set(k, (g = { o, c, other, side, ts: [] })); g.ts.push(t); };
+    for (let z = r.z0 - 6; z < r.z1 + 6; z++) for (let x = r.x0 - 6; x < r.x1 + 6; x++) {
+      const i2 = x - OX, j2 = z - OZ; if (idOf(cell(i2, j2)) !== r.id) continue;
+      add('h', z, x, idOf(cell(i2, j2 - 1)), 1); add('h', z + 1, x, idOf(cell(i2, j2 + 1)), -1);
+      add('v', x, z, idOf(cell(i2 - 1, j2)), 1); add('v', x + 1, z, idOf(cell(i2 + 1, j2)), -1);
+    }
     let best = null;
-    for (const pass of [0, 1]) {
-      for (const s of sides) {
-        let t = s.a;
-        while (t < s.b) {
-          const id = s.nb(t); let e = t;
-          while (e < s.b && s.nb(e) === id) e++;
-          const ok = pass === 0 ? isHallId(id) : id >= 1000;
-          if (ok && (!best || e - t > best.len)) best = { s, a: t, len: e - t };
-          t = e;
-        }
+    for (const g of groups.values()) {
+      g.ts.sort((a, b) => a - b);
+      for (let a = 0; a < g.ts.length;) {
+        let e = a; while (e + 1 < g.ts.length && g.ts[e + 1] === g.ts[e] + 1) e++;
+        const len = e - a + 1, score = len + (isHallId(g.other) ? 1000 : 0);
+        if (len >= 2 && (!best || score > best.score)) best = { g, a: g.ts[a], len, score };
+        a = e + 1;
       }
-      if (best) break;
     }
     if (!best) continue;
-    const w = Math.min(best.len - 1, ['shop', 'garage', 'robot', 'gym', 'cafe', 'library', 'auditorium'].includes(r.type) ? 3 : 2);
-    const meta = { room: ri, side: best.s.side };
-    if (best.len >= 20) {
-      carve(best.s.o, best.s.c, Math.floor(best.a + best.len * 0.25 - w / 2), w, meta);
-      carve(best.s.o, best.s.c, Math.floor(best.a + best.len * 0.75 - w / 2), w, meta);
-    } else carve(best.s.o, best.s.c, Math.floor(best.a + (best.len - w) / 2), w, meta);
+    const w = Math.max(1, Math.min(best.len - 1, ['shop', 'garage', 'robot', 'gym', 'cafe', 'library', 'auditorium'].includes(r.type) ? 3 : 2));
+    const meta = { room: ri, side: best.g.side };
+    if (best.len >= 20 && best.score > 1000) {
+      carve(best.g.o, best.g.c, Math.floor(best.a + best.len * 0.25 - w / 2), w, meta);
+      carve(best.g.o, best.g.c, Math.floor(best.a + best.len * 0.75 - w / 2), w, meta);
+    } else carve(best.g.o, best.g.c, Math.floor(best.a + (best.len - w) / 2), w, meta);
+  }
+  // guarantee every indoor cell can be reached: open a door between any cut-off pocket and the reachable area
+  for (let guard = 0; guard < 80; guard++) {
+    const seen = new Uint8Array(N), q = [0]; seen[0] = 1;
+    while (q.length) {
+      const k = q.pop(), i2 = k % GX, j2 = (k / GX) | 0;
+      const go = (ni, nj, blocked) => { if (ni < 0 || nj < 0 || ni >= GX || nj >= GZ || blocked > 0) return; const nk = nj * GX + ni; if (!seen[nk]) { seen[nk] = 1; q.push(nk); } };
+      go(i2, j2 - 1, hW[j2 * GX + i2]); go(i2, j2 + 1, hW[(j2 + 1) * GX + i2]); go(i2 - 1, j2, vW[j2 * (GX + 1) + i2]); go(i2 + 1, j2, vW[j2 * (GX + 1) + i2 + 1]);
+    }
+    let fixed = false;
+    for (let j2 = 1; j2 < GZ - 1 && !fixed; j2++) for (let i2 = 1; i2 < GX - 2 && !fixed; i2++) {
+      const k = j2 * GX + i2; if (!idGrid[k] || seen[k]) continue;
+      // unreachable indoor cell next to a reachable indoor cell → door (2 wide where the wall continues)
+      if (seen[k - GX] && idGrid[k - GX]) { carve('h', j2 + OZ, i2 + OX, hW[j2 * GX + i2 + 1] > 0 && idGrid[k + 1] && idGrid[k + 1 - GX] ? 2 : 1, {}); fixed = true; }
+      else if (seen[k + GX] && idGrid[k + GX]) { carve('h', j2 + 1 + OZ, i2 + OX, hW[(j2 + 1) * GX + i2 + 1] > 0 && idGrid[k + 1] && idGrid[k + 1 + GX] ? 2 : 1, {}); fixed = true; }
+      else if (seen[k - 1] && idGrid[k - 1]) { carve('v', i2 + OX, j2 + OZ, vW[(j2 + 1) * (GX + 1) + i2] > 0 && idGrid[k + GX] && idGrid[k + GX - 1] ? 2 : 1, {}); fixed = true; }
+      else if (seen[k + 1] && idGrid[k + 1]) { carve('v', i2 + 1 + OX, j2 + OZ, vW[(j2 + 1) * (GX + 1) + i2 + 1] > 0 && idGrid[k + GX] && idGrid[k + GX + 1] ? 2 : 1, {}); fixed = true; }
+    }
+    if (!fixed) break;
   }
   // merge edges into runs
   const walls = [], doors = [];
