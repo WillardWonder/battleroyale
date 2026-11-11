@@ -106,6 +106,66 @@ const T = {
   roof: () => canvasTex(128, 128, (g, w, h) => { g.fillStyle = '#4a4744'; g.fillRect(0, 0, w, h); speckle(g, w, h, 3000, ['#3c3a37', '#5a5754', '#6a6763'], 2); }),
 };
 
+// ---- higher-detail surfaces: large-scale variation, grout/mortar, wear, plus derived bump (normal) maps ----
+function blotch(g, w, h, n, colors, rMin, rMax, alpha) {
+  for (let i = 0; i < n; i++) {
+    const x = Math.random() * w, y = Math.random() * h, r = rMin + Math.random() * (rMax - rMin), c = colors[(Math.random() * colors.length) | 0];
+    for (const [ox, oy] of [[0, 0], [w, 0], [-w, 0], [0, h], [0, -h]]) { const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r); gr.addColorStop(0, c); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.globalAlpha = alpha; g.fillStyle = gr; g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2); }
+  }
+  g.globalAlpha = 1;
+}
+function bumpFrom(tex, strength) {
+  const c = tex.image, w = c.width, h = c.height, src = c.getContext('2d').getImageData(0, 0, w, h).data;
+  const o = document.createElement('canvas'); o.width = w; o.height = h; const g = o.getContext('2d'), im = g.createImageData(w, h), d = im.data;
+  const L = new Float32Array(w * h); for (let i = 0; i < w * h; i++) L[i] = (src[i * 4] + src[i * 4 + 1] + src[i * 4 + 2]) / 765;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const xl = (x + w - 1) % w, xr = (x + 1) % w, yu = (y + h - 1) % h, yd = (y + 1) % h;
+    const dx = (L[y * w + xr] - L[y * w + xl]) * strength, dy = (L[yd * w + x] - L[yu * w + x]) * strength, il = 1 / Math.hypot(dx, dy, 1), i = (y * w + x) * 4;
+    d[i] = (-dx * il * 0.5 + 0.5) * 255; d[i + 1] = (dy * il * 0.5 + 0.5) * 255; d[i + 2] = (il * 0.5 + 0.5) * 255; d[i + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  const t = new THREE.CanvasTexture(o); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; tex.anisotropy = 8; tex.userData.bump = t; return tex;
+}
+T.brick = () => bumpFrom(canvasTex(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#6f675b'; g.fillRect(0, 0, w, h);
+  const rows = 24, bh = h / rows, bw = w / 8;
+  for (let r = 0; r < rows; r++) for (let c = -1; c < 9; c++) {
+    const v = 138 + Math.random() * 46, t = Math.random() * 14, x = c * bw + (r % 2 ? bw / 2 : 0), y = r * bh;
+    const gr = g.createLinearGradient(0, y, 0, y + bh); gr.addColorStop(0, `rgb(${v + 44},${v + 12 + t},${v - 30})`); gr.addColorStop(1, `rgb(${v + 22},${v - 6 + t},${v - 44})`);
+    g.fillStyle = gr; g.fillRect(x + 3, y + 3, bw - 6, bh - 6);
+    g.fillStyle = 'rgba(255,240,210,.18)'; g.fillRect(x + 3, y + 3, bw - 6, 2); g.fillStyle = 'rgba(40,25,10,.25)'; g.fillRect(x + 3, y + bh - 5, bw - 6, 2);
+  }
+  speckle(g, w, h, 16000, ['#5e4a34', '#e2cfae', '#a98b63', '#8a6f4c'], 2); blotch(g, w, h, 26, ['rgba(60,45,30,1)', 'rgba(235,215,180,1)'], 80, 260, 0.1);
+}), 2.6);
+T.tile = () => bumpFrom(canvasTex(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#d3cec2'; g.fillRect(0, 0, w, h); blotch(g, w, h, 40, ['rgba(190,182,165,1)', 'rgba(240,236,226,1)'], 60, 220, 0.16);
+  speckle(g, w, h, 22000, ['#b3ac9c', '#efeadf', '#9d978a', '#6f7f94', '#c9b9a0'], 2);
+  g.fillStyle = '#8f8a80'; for (let i = 0; i < 2; i++) { g.fillRect(i * 512 - 3, 0, 6, h); g.fillRect(0, i * 512 - 3, w, 6); g.fillRect(w - 3, 0, 3, h); g.fillRect(0, h - 3, w, 3); }
+}), 1.6);
+T.conc = () => bumpFrom(canvasTex(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#b3b0a8'; g.fillRect(0, 0, w, h); blotch(g, w, h, 60, ['rgba(140,137,130,1)', 'rgba(210,207,198,1)', 'rgba(120,112,100,1)'], 50, 240, 0.14);
+  speckle(g, w, h, 40000, ['#9a978f', '#cdcac2', '#86837c', '#bdb9ae'], 2);
+  g.strokeStyle = 'rgba(60,58,54,.55)'; g.lineWidth = 5; g.strokeRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(50,48,45,.35)'; g.lineWidth = 1.5; for (let i = 0; i < 5; i++) { let x = Math.random() * w, y = Math.random() * h; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 9; k++) { x += (Math.random() - 0.5) * 90; y += Math.random() * 60; g.lineTo(x, y); } g.stroke(); }
+}), 2.0);
+T.asphalt = () => bumpFrom(canvasTex(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#3a3d42'; g.fillRect(0, 0, w, h); blotch(g, w, h, 50, ['rgba(30,32,35,1)', 'rgba(78,80,86,1)'], 60, 260, 0.18);
+  speckle(g, w, h, 60000, ['#2a2c30', '#50545a', '#6a6e75', '#1f2023', '#8a8d92'], 2);
+  g.strokeStyle = 'rgba(15,15,16,.6)'; g.lineWidth = 2; for (let i = 0; i < 6; i++) { let x = Math.random() * w, y = Math.random() * h; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 10; k++) { x += (Math.random() - 0.5) * 120; y += (Math.random() - 0.3) * 80; g.lineTo(x, y); } g.stroke(); }
+}), 3.0);
+T.grass = () => bumpFrom(canvasTex(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#5f8136'; g.fillRect(0, 0, w, h); blotch(g, w, h, 70, ['rgba(70,100,36,1)', 'rgba(132,160,74,1)', 'rgba(150,140,70,1)', 'rgba(52,84,30,1)'], 50, 220, 0.2);
+  for (let i = 0; i < 52000; i++) { const x = Math.random() * w, y = Math.random() * h, l = 3 + Math.random() * 6; g.strokeStyle = ['#4d6e2a', '#7fa046', '#92ad55', '#3f5f22', '#a9a24e', '#6a8c3a'][(Math.random() * 6) | 0]; g.globalAlpha = 0.55; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (Math.random() - 0.5) * 3, y - l); g.stroke(); }
+  g.globalAlpha = 1; speckle(g, w, h, 900, ['#b9863a', '#c9a24a', '#8a5a2c'], 3);
+}), 2.2);
+T.carpet = () => bumpFrom(canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#44597a'; g.fillRect(0, 0, w, h); blotch(g, w, h, 20, ['rgba(52,68,96,1)', 'rgba(84,104,138,1)'], 40, 140, 0.18); speckle(g, w, h, 42000, ['#36486a', '#587093', '#2e3d57', '#6e83a3', '#4a6088'], 2); }), 1.4);
+T.paint = () => canvasTex(128, 1024, (g, w, h) => { // 8 m tall; contact shadow near the floor and ceiling line
+  g.fillStyle = '#e6dfcf'; g.fillRect(0, 0, w, h); speckle(g, w, h - 140, 2500, ['#dcd4c2', '#f0eadc', '#d2c9b6'], 3);
+  g.fillStyle = '#2f5c8c'; g.fillRect(0, h - 128, w, 116); g.fillStyle = '#c9d0d8'; g.fillRect(0, h - 140, w, 12); g.fillStyle = '#22262c'; g.fillRect(0, h - 14, w, 14);
+  let gr = g.createLinearGradient(0, h - 70, 0, h); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.42)'); g.fillStyle = gr; g.fillRect(0, h - 70, w, 70);
+  const cy = h - (3.6 / 8) * h; gr = g.createLinearGradient(0, cy, 0, cy + 60); gr.addColorStop(0, 'rgba(0,0,0,.34)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, cy, w, 60);
+});
+
 /* ───────── sky ───────── */
 const SUN = new THREE.Vector3(-0.52, 0.56, 0.64).normalize();
 const FOG = 0xcfe4fb;
@@ -179,7 +239,7 @@ export class World {
   }
 
   _mats() {
-    const S = (tex, o = {}) => { const { roughness, metalness, ...rest } = o; return new THREE.MeshLambertMaterial({ map: tex, vertexColors: true, ...rest }); };
+    const S = (tex, o = {}) => { const { roughness, metalness, ...rest } = o; const m = new THREE.MeshLambertMaterial({ map: tex, vertexColors: true, ...rest }); if (tex.userData.bump) m.normalMap = tex.userData.bump; return m; };
     const M = (this.mat = {
       brick: S(T.brick(), { roughness: 0.95 }), paint: S(T.paint(), { roughness: 0.85 }),
       tile: S(T.tile(), { roughness: 0.38 }), carpet: S(T.carpet(), { roughness: 1 }), vinyl: S(T.vinyl(), { roughness: 0.45 }), wood: S(T.wood(), { roughness: 0.35 }),
@@ -194,7 +254,7 @@ export class World {
       leaf: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
     });
     for (const k of ['ceil', 'roof', 'tile', 'carpet', 'vinyl', 'wood', 'conc', 'cafe']) M[k].shadowSide = THREE.DoubleSide;
-    this.uvs = { brick: 1 / 3, paint: 1 / 8, tile: 0.5, carpet: 0.5, vinyl: 1, wood: 0.4, conc: 0.4, cafe: 0.5, grass: 1 / 9, asphalt: 0.25, sand: 0.3, court: 0.25, field: 0.1, ceil: 1 / 2.4, roof: 0.25, trim: 1, glass: 1, glassDark: 1, line: 1 };
+    this.uvs = { brick: 1 / 3, paint: 1 / 8, tile: 1 / 2.4, carpet: 0.4, vinyl: 1, wood: 0.4, conc: 1 / 3, cafe: 0.5, grass: 1 / 7, asphalt: 1 / 6, sand: 0.3, court: 0.25, field: 0.1, ceil: 1 / 2.4, roof: 0.25, trim: 1, glass: 1, glassDark: 1, line: 1 };
     this.mb = {};
   }
   B(mat) { return (this.mb[mat] ??= new MB()); }
