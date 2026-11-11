@@ -49,7 +49,7 @@ export class Game {
   constructor(canvas, sfx, ui) {
     this.canvas = canvas; this.sfx = sfx; this.ui = ui; this.opts = loadOpts();
     const r = (this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }));
-    r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.0; r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
+    r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.12; r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(this.opts.fov, 1, 0.07, 1900); this.camera.rotation.order = 'YXZ'; this.scene.add(this.camera);
     this.world = new World(r, this.scene);

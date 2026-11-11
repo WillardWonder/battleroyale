@@ -108,7 +108,7 @@ const T = {
 
 /* ───────── sky ───────── */
 const SUN = new THREE.Vector3(-0.52, 0.56, 0.64).normalize();
-const FOG = 0xbfd3e6;
+const FOG = 0xcfe4fb;
 function makeSky() {
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
@@ -121,7 +121,7 @@ function makeSky() {
       float fbm(vec2 p){ float a=0.5, s=0.0; for(int i=0;i<5;i++){ s+=a*noise(p); p*=2.03; a*=0.5; } return s; }
       void main(){
         vec3 d = normalize(vDir); float h = max(d.y, 0.0);
-        vec3 zen = vec3(0.10,0.30,0.72), hor = vec3(0.56,0.70,0.86);
+        vec3 zen = vec3(0.07,0.30,0.95), hor = vec3(0.62,0.82,1.15);
         vec3 col = mix(hor, zen, pow(h, 0.55));
         float s = max(dot(d, sunDir), 0.0);
         col += vec3(1.0,0.72,0.42) * pow(s, 5.0) * 0.32;
@@ -211,7 +211,7 @@ export class World {
 
   _sky() {
     this.sky = makeSky(); this.scene.add(this.sky);
-    this.scene.fog = new THREE.Fog(FOG, 160, 900);
+    this.scene.fog = new THREE.Fog(FOG, 220, 1300);
     this.scene.background = new THREE.Color(FOG);
     this.hemi = new THREE.HemisphereLight(0xcfe2ff, 0x8d8468, 0.8); this.scene.add(this.hemi);
     this.amb = new THREE.AmbientLight(0xfff4e2, 0.28); this.scene.add(this.amb);
@@ -223,7 +223,7 @@ export class World {
     // image-based ambient from the sky so glass/metal and interiors pick up colour
     try {
       const pm = new THREE.PMREMGenerator(this.renderer), s2 = new THREE.Scene(); s2.add(makeSky());
-      this.scene.environment = pm.fromScene(s2, 0, 1, 2000).texture; this.scene.environmentIntensity = 0.45; pm.dispose();
+      this.scene.environment = pm.fromScene(s2, 0, 1, 2000).texture; this.scene.environmentIntensity = 0.6; pm.dispose();
     } catch (e) { console.warn('env map skipped', e); }
   }
 
