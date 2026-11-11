@@ -167,8 +167,8 @@ T.paint = () => canvasTex(128, 1024, (g, w, h) => { // 8 m tall; contact shadow 
 });
 
 /* ───────── sky ───────── */
-const SUN = new THREE.Vector3(-0.52, 0.56, 0.64).normalize();
-const FOG = 0xcfe4fb;
+const SUN = new THREE.Vector3(-0.66, 0.34, 0.67).normalize();
+const FOG = 0xe9cfae;
 function makeSky() {
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
@@ -181,15 +181,15 @@ function makeSky() {
       float fbm(vec2 p){ float a=0.5, s=0.0; for(int i=0;i<3;i++){ s+=a*noise(p); p*=2.03; a*=0.5; } return s; }
       void main(){
         vec3 d = normalize(vDir); float h = max(d.y, 0.0);
-        vec3 zen = vec3(0.07,0.30,0.95), hor = vec3(0.62,0.82,1.15);
-        vec3 col = mix(hor, zen, pow(h, 0.55));
         float s = max(dot(d, sunDir), 0.0);
-        col += vec3(1.0,0.72,0.42) * pow(s, 5.0) * 0.32;
-        col += vec3(1.0,0.93,0.8) * smoothstep(0.9993, 0.9998, s) * 12.0;
+        vec3 zen = vec3(0.05,0.22,0.78), hor = mix(vec3(0.70,0.78,0.98), vec3(1.55,0.92,0.48), pow(s, 1.6) * 0.85 + 0.15);
+        vec3 col = mix(hor, zen, pow(h, 0.55));
+        col += vec3(1.0,0.62,0.30) * pow(s, 6.0) * 0.9;
+        col += vec3(1.0,0.86,0.62) * smoothstep(0.9988, 0.9997, s) * 40.0 + vec3(1.0,0.7,0.4) * pow(s, 90.0) * 1.6;
         if (d.y > 0.01) {
           vec2 uv = d.xz / (d.y + 0.14) * 1.1 + vec2(time * 0.006, time * 0.002);
           float c = smoothstep(0.48, 0.82, fbm(uv));
-          vec3 cc = mix(vec3(0.82,0.86,0.93), vec3(1.0,0.97,0.92), clamp(pow(s,2.0)*1.4 + 0.45, 0.0, 1.0));
+          vec3 cc = mix(vec3(0.78,0.74,0.86), vec3(1.7,1.15,0.75), clamp(pow(s,2.0)*1.3 + 0.25, 0.0, 1.0));
           col = mix(col, cc, c * 0.85 * smoothstep(0.01, 0.16, d.y));
         }
         col = mix(col, hor * 0.92, smoothstep(0.0, -0.12, d.y));
@@ -245,7 +245,7 @@ export class World {
       tile: S(T.tile(), { roughness: 0.38 }), carpet: S(T.carpet(), { roughness: 1 }), vinyl: S(T.vinyl(), { roughness: 0.45 }), wood: S(T.wood(), { roughness: 0.35 }),
       conc: S(T.conc(), { roughness: 0.9 }), cafe: S(T.cafe(), { roughness: 0.4 }), grass: S(T.grass(), { roughness: 1 }), asphalt: S(T.asphalt(), { roughness: 0.95 }),
       sand: S(T.sand(), { roughness: 1 }), court: S(T.court(), { roughness: 0.8 }), field: S(T.field(), { roughness: 1 }),
-      ceil: S(T.ceil(), { roughness: 1, emissive: 0xffffff, emissiveMap: T.ceilE(), emissiveIntensity: 0.9 }), roof: S(T.roof(), { roughness: 1 }),
+      ceil: S(T.ceil(), { roughness: 1, emissive: 0xffffff, emissiveMap: T.ceilE(), emissiveIntensity: 2.2 }), roof: S(T.roof(), { roughness: 1 }),
       trim: new THREE.MeshLambertMaterial({ color: 0x1a4a82, vertexColors: true }),
       glass: new THREE.MeshLambertMaterial({ color: 0xa9d2f0, transparent: true, opacity: 0.3, vertexColors: true, depthWrite: false }),
       glassDark: new THREE.MeshLambertMaterial({ color: 0x2f5a86, vertexColors: true }),
@@ -271,11 +271,11 @@ export class World {
 
   _sky() {
     this.sky = makeSky(); this.scene.add(this.sky);
-    this.scene.fog = new THREE.Fog(FOG, 220, 1300);
+    this.scene.fog = new THREE.Fog(FOG, 120, 1100);
     this.scene.background = new THREE.Color(FOG);
-    this.hemi = new THREE.HemisphereLight(0xd6e6ff, 0xc4bca8, 1.25); this.scene.add(this.hemi);
-    this.amb = new THREE.AmbientLight(0xfff4e2, 0.5); this.scene.add(this.amb);
-    const sun = (this.sun = new THREE.DirectionalLight(0xfff0d8, 3.7));
+    this.hemi = new THREE.HemisphereLight(0xbfd2ff, 0xd0b894, 1.15); this.scene.add(this.hemi);
+    this.amb = new THREE.AmbientLight(0xffe9cf, 0.75); this.scene.add(this.amb);
+    const sun = (this.sun = new THREE.DirectionalLight(0xffd9ac, 4.0));
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
     const sc = sun.shadow.camera; sc.left = -62; sc.right = 62; sc.top = 62; sc.bottom = -62; sc.near = 1; sc.far = 320;
     sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04;

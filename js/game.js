@@ -62,7 +62,7 @@ export class Game {
     this.keys = new Set(); this.just = new Set(); this.mouse = { l: false, r: false }; this.mdx = 0; this.mdy = 0; this.wheel = 0;
     this.me = this._blankMe(); this.time = 0; this.sendT = 0; this.lastSent = ''; this.lastSentAt = 0; this.authT = 0; this.fpsAcc = 0; this.fpsN = 0; this.fps = 60; this.lowT = 0;
     this.orbit = 0; this.testMode = false;
-    this.applyOpts(); this._bind(); this.resize();
+    this._initPost(); this.applyOpts(); this._bind(); this.resize();
     this._raf = (t) => this.frame(t); this._last = performance.now(); requestAnimationFrame(this._raf);
   }
   _blankMe() {
@@ -75,7 +75,34 @@ export class Game {
     const o = this.opts;
     this.world.setQuality(o.quality); this.sfx.setVolume(o.vol); this.camera.fov = o.fov; this.camera.updateProjectionMatrix(); this.resize();
   }
-  resize() { const w = window.innerWidth, h = window.innerHeight; this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Math.sqrt([0.75e6, 1.25e6, 2.3e6][this.opts.quality] / (w * h)))); this.renderer.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
+  // film-style post pass: HDR render → cheap mip-chain bloom → tone map → colour grade + vignette
+  _initPost() {
+    try {
+      const r = this.renderer; if (!r.capabilities.isWebGL2 && r.capabilities.isWebGL2 !== undefined) return;
+      if (!r.extensions.has('EXT_color_buffer_float') && !r.extensions.has('EXT_color_buffer_half_float')) return;
+      this.rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter });
+      this.postScene = new THREE.Scene(); this.postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+      const mat = new THREE.ShaderMaterial({
+        uniforms: { t: { value: this.rt.texture } }, depthTest: false, depthWrite: false,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+        fragmentShader: `uniform sampler2D t; varying vec2 vUv;
+          void main(){
+            vec3 c = texture2D(t, vUv).rgb;
+            vec3 b = max(textureLod(t, vUv, 2.5).rgb - 1.0, 0.0) * 0.5 + max(textureLod(t, vUv, 4.0).rgb - 0.9, 0.0) * 0.55 + max(textureLod(t, vUv, 5.5).rgb - 0.8, 0.0) * 0.5 + max(textureLod(t, vUv, 7.0).rgb - 0.7, 0.0) * 0.35;
+            gl_FragColor = vec4(c + b * 0.55, 1.0);
+            #include <tonemapping_fragment>
+            vec3 g = gl_FragColor.rgb; float l = dot(g, vec3(0.2126, 0.7152, 0.0722));
+            g = mix(vec3(l), g, 1.06); g = (g - 0.5) * 1.03 + 0.5;
+            g *= mix(vec3(0.94, 0.98, 1.08), vec3(1.06, 1.0, 0.92), smoothstep(0.15, 0.7, l));
+            float v = length(vUv - 0.5); g *= 1.0 - 0.26 * smoothstep(0.4, 0.9, v);
+            gl_FragColor = vec4(clamp(g, 0.0, 1.0), 1.0);
+            #include <colorspace_fragment>
+          }`,
+      });
+      const q = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat); q.frustumCulled = false; this.postScene.add(q);
+    } catch (e) { console.warn('post-processing unavailable', e); this.rt = null; }
+  }
+  resize() { const w = window.innerWidth, h = window.innerHeight; this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Math.sqrt([0.75e6, 1.25e6, 2.3e6][this.opts.quality] / (w * h)))); this.renderer.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); if (this.rt) { const d = this.renderer.getDrawingBufferSize(new THREE.Vector2()); this.rt.setSize(d.x, d.y); } }
   get locked() { return this.testMode || document.pointerLockElement === this.canvas; }
   lock() { this.sfx.unlock(); if (!this.testMode && this.canvas.requestPointerLock) { try { const p = this.canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch { /* ignore */ } } }
 
@@ -653,7 +680,11 @@ export class Game {
     for (const t of this.tracers) if (t.life > 0) { t.life -= dt; t.mesh.material.opacity = Math.max(0, t.life / t.max); if (t.life <= 0) t.mesh.visible = false; }
     _v.copy(this.camera.position); if (this.app === 'play') _v.set(me.x, 0, me.z);
     this.world.update(dt, this.time, _v);
-    if (!this.noRender) this.renderer.render(this.scene, this.camera);
+    if (!this.noRender) {
+      const r = this.renderer;
+      if (this.rt && this.opts.quality > 0) { r.setRenderTarget(this.rt); r.render(this.scene, this.camera); r.setRenderTarget(null); r.render(this.postScene, this.postCam); }
+      else r.render(this.scene, this.camera);
+    }
     this.just.clear(); this.wheel = 0;
   }
   _autoQuality() {
