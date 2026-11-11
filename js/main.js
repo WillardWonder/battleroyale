@@ -4,6 +4,7 @@ import { Sfx } from './audio.js';
 import { FirebaseNet, LocalNet, randomCode, authMessage } from './net.js';
 import { DEFAULT_SETTINGS } from './config.js';
 import { esc } from './util.js';
+import { preloadModels } from './models.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -94,7 +95,7 @@ async function boot() {
   $('in-callsign').value = localStorage.getItem('hh-name') || '';
   await nextFrame();
   try { game = new Game($('c'), sfx, ui); } catch (e) { console.error(e); $('load-msg').textContent = 'This device could not start WebGL: ' + (e.message || e); return; }
-  game.testMode = TEST; window.__game = game;
+  game.testMode = TEST; window.__game = game; preloadModels();
   $('load-bar').style.width = '70%'; $('load-msg').textContent = 'Connecting…'; await nextFrame();
   localNet = new LocalNet(); game.attach(localNet);
   if (params.has('local')) {

@@ -1,6 +1,23 @@
 // Characters, held items, first-person view models and name tags — all procedural, no asset downloads.
 import * as THREE from '../vendor/three.js';
 import { MB } from './world.js';
+import { GLTFLoader } from '../vendor/gltf.js';
+
+// Blaster models: Kenney "Starter Kit FPS" (MIT) — see assets/models/LICENSE-Kenney.md
+const GLB = {};
+export function preloadModels() {
+  const L = new GLTFLoader();
+  for (const [k, f] of [['blaster', 'blaster.glb'], ['repeater', 'blaster-repeater.glb']]) L.load('assets/models/' + f, (g) => { GLB[k] = g.scene; }, undefined, (e) => console.warn('model failed', f, e));
+}
+// weapon → [model, length in metres, tint]
+const WMODEL = { rubber: ['blaster', 0.36, 0xffe9a8], laser: ['blaster', 0.52, 0xff9a9a], stapler: ['repeater', 0.46, 0xffffff], chalk: ['repeater', 0.54, 0xb6f0c0], dodge: ['repeater', 0.66, 0x9fd0ff] };
+function modelWeapon(kind) {
+  const def = WMODEL[kind]; if (!def || !GLB[def[0]]) return null;
+  const src = GLB[def[0]].clone(true), box = new THREE.Box3().setFromObject(src), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3()), k = def[1] / size.z;
+  src.traverse((o) => { if (o.isMesh) { o.material = o.material.clone(); o.material.color.multiply(new THREE.Color(def[2])); o.frustumCulled = false; } });
+  src.position.set(-c.x * k, -box.min.y * k - size.y * k * 0.55, -c.z * k); src.scale.setScalar(k);
+  const g = new THREE.Group(), flip = new THREE.Group(); flip.rotation.y = Math.PI; flip.add(src); g.add(flip); return g;
+}
 
 const charMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 const m4 = new THREE.Matrix4();
@@ -25,6 +42,7 @@ export function makePaperBall(r = 0.07) {
 
 // toy weapons for Battle Royale (also used as first-person view models)
 export function makeWeapon(kind) {
+  const real = modelWeapon(kind); if (real) return real;
   const mb = new MB(), C = (h) => { const c = new THREE.Color(h); return [c.r, c.g, c.b]; };
   const b = (w, h, d, x, y, z, col) => mb.box(x - w / 2, y - h / 2, z - d / 2, x + w / 2, y + h / 2, z + d / 2, 1, C(col), 63);
   if (kind === 'rubber') { b(0.05, 0.06, 0.34, 0, 0.03, -0.12, 0xffd23f); b(0.045, 0.14, 0.06, 0, -0.06, 0.02, 0xe63946); b(0.02, 0.02, 0.3, 0, 0.07, -0.12, 0xb07a3a); b(0.06, 0.03, 0.03, 0, 0.075, 0.03, 0x1d78d6); }
@@ -96,9 +114,21 @@ export function makeNameTag(text, color = '#ffffff') {
 /* First-person arms: ruler in the right hand, paper in the left; or a toy blaster in BR. */
 export function makeViewModel() {
   const root = new THREE.Group(), armMat = charMat;
-  const mkArm = (col) => { const mb = new MB(); mb.geom(new THREE.CapsuleGeometry(0.045, 0.34, 3, 8), new THREE.Matrix4().makeRotationX(Math.PI / 2).setPosition(0, 0, 0.2), col); mb.geom(new THREE.IcosahedronGeometry(0.058, 1), T(0, 0, 0), 0xe0ac86); return new THREE.Mesh(mb.build(), armMat); };
+  // forearm with a cuff and a closed fist (palm, knuckles, curled fingers, thumb)
+  const mkArm = (col, side) => {
+    const mb = new MB(), SK = 0xe3b08c, SK2 = 0xcf9a76, M = (x, y, z, rx = 0, ry = 0) => new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx, ry, 0)).setPosition(x, y, z);
+    mb.geom(new THREE.CylinderGeometry(0.05, 0.062, 0.42, 12), M(0, -0.012, 0.3, Math.PI / 2), col);
+    mb.geom(new THREE.CylinderGeometry(0.054, 0.054, 0.035, 12), M(0, -0.004, 0.085, Math.PI / 2), 0xf7f5ee);
+    mb.geom(new THREE.CylinderGeometry(0.034, 0.04, 0.05, 10), M(0, 0, 0.05, Math.PI / 2), SK);
+    mb.geom(new THREE.BoxGeometry(0.082, 0.06, 0.085, 2, 2, 2), M(0, 0.002, -0.005), SK);
+    mb.geom(new THREE.BoxGeometry(0.084, 0.034, 0.034), M(0, 0.014, -0.058, -0.5), SK);
+    for (let i = 0; i < 4; i++) mb.geom(new THREE.BoxGeometry(0.0185, 0.05, 0.03), M(-0.031 + i * 0.0207, -0.026, -0.058, 0.25), i % 2 ? SK : SK2);
+    for (let i = 0; i < 4; i++) mb.geom(new THREE.BoxGeometry(0.0185, 0.022, 0.05), M(-0.031 + i * 0.0207, -0.05, -0.03, 0), i % 2 ? SK2 : SK);
+    mb.geom(new THREE.BoxGeometry(0.028, 0.03, 0.075), M(side * 0.052, 0.012, -0.03, 0, side * 0.35), SK2);
+    return new THREE.Mesh(mb.build(), armMat);
+  };
   const R = new THREE.Group(), L = new THREE.Group(); root.add(R, L);
-  let armR = mkArm(0xf3f1ea), armL = mkArm(0xf3f1ea); R.add(armR); L.add(armL);
+  let armR = mkArm(0x2f5c8c, -1), armL = mkArm(0x2f5c8c, 1); R.add(armR); L.add(armL);
   const ruler = makeRuler(); ruler.position.set(0, -0.02, -0.02); ruler.rotation.set(-1.05, 0, 0.12); R.add(ruler);
   const paper = makePaperBall(0.05); paper.position.set(0, 0.05, -0.03); L.add(paper);
   let gun = null, kindNow = '', t = 0, swingT = 0, throwT = 0, kick = 0, bob = 0, hidden = false;
@@ -111,7 +141,7 @@ export function makeViewModel() {
       ruler.visible = mode === 'hunter'; paper.visible = mode === 'hunter' || (mode === 'br' && weapon === 'paper');
       L.visible = mode === 'hunter' || (mode === 'br' && weapon === 'paper');
       if (gun) { R.remove(gun); gun = null; }
-      if (mode === 'br' && weapon !== 'paper') { gun = makeWeapon(weapon); gun.position.set(0, 0.03, -0.12); gun.castShadow = false; gun.frustumCulled = false; R.add(gun); }
+      if (mode === 'br' && weapon !== 'paper') { gun = makeWeapon(weapon); gun.position.set(0, 0.075, -0.1); gun.traverse((o) => { o.frustumCulled = false; }); R.add(gun); }
       kindNow = mode + weapon;
     },
     key: () => kindNow,
