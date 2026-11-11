@@ -24,7 +24,7 @@ export class Hud {
     g.stroke();
     // building letters
     g.fillStyle = 'rgba(11,74,143,.85)'; g.font = `800 ${S * 7}px "Segoe UI", Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    for (const [t, x, z] of [['A', -80, 23], ['B', -40, 23], ['C', 3, 23], ['D', 46, 23], ['E', 79, 23], ['F', -38, -20], ['H', -33, -65], ['I', 25, -65], ['G', 81, -62], ['CHS', 26, 100], ['CBI', 120, -4], ['CGE', 92, 100], ['TWS', 119, -103]]) g.fillText(t, (x - OX) * S, (z - OZ) * S);
+    for (const [t, x, z] of [['A', -28, 74], ['B', -68, 42], ['C', -78, 8], ['D', -80, -56], ['E', -52, -44], ['F', -18, -36], ['G', 18, -28], ['H', 78, -52], ['H', 96, 8], ['I', 90, 50]]) g.fillText(t, (x - OX) * S, (z - OZ) * S);
     this.S = S; return cv;
   }
   set(id, v) { if (this.cache[id] !== v) { this.cache[id] = v; $(id).textContent = v; } }

@@ -303,13 +303,9 @@ export class World {
     const L = this.B('line'), W = lin(0xe9e9e4), Y = lin(0xe8b923);
     const strip = (x0, z0, x1, z1, col = W) => L.quad([x0, 0.02, z1, x1, 0.02, z1, x1, 0.02, z0, x0, 0.02, z0], [0, 1, 0], [0, 0, 1, 0, 1, 1, 0, 1], col);
     for (const st of this.furn().stalls) { if (st.X) strip(st.x - 0.06, st.z, st.x + 0.06, st.z + 5); else strip(st.x, st.z - 0.06, st.x + 5, st.z + 0.06); }
-    for (let x = -138; x < 138; x += 9) strip(x, 74.9, x + 4.5, 75.1, Y);
-    for (let z = -88; z < 68; z += 9) strip(99.4, z, 99.6, z + 4.5, Y);
+    for (let x = -138; x < 138; x += 9) strip(x, -112.1, x + 4.5, -111.9, Y);
     const rect = (x0, z0, x1, z1, col = W, t = 0.1) => { strip(x0, z0, x1, z0 + t, col); strip(x0, z1 - t, x1, z1, col); strip(x0, z0, x0 + t, z1, col); strip(x1 - t, z0, x1, z1, col); };
-    rect(36.3, -11.7, 55.7, 1.7); strip(45.95, -11.7, 46.05, 1.7); rect(36.3, -7.5, 42, -2.5); rect(50, -7.5, 55.7, -2.5);
-    rect(37, -39, 53, -29, lin(0x2a6fb0), 0.08);
-    rect(-46, -112, 56, -90); for (let x = -36; x <= 46; x += 10.2) strip(x - 0.06, -112, x + 0.06, -90);
-    for (let x = -1; x <= 13; x += 1.2) strip(x, 70.5, x + 0.6, 79.5); // crosswalk to CHS
+    rect(31, 27, 47, 37, lin(0x2a6fb0), 0.08);
   }
   furn() { return (this._furn ??= furnish(this.campus)); }
 

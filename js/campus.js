@@ -40,121 +40,88 @@ const strip = (b, x0, z0, x1, z1, ax, defs) => {
   }
 };
 
-/* ───────── Main building: "Main Street" spine with A–E along the front ───────── */
-H('A', -104, 20, -56, 26, 'A Hallway'); H('B', -56, 20, -24, 26, 'B Hallway');
-H('C', -24, 20, 30, 26, 'C Hallway · Main Street'); H('D', 30, 20, 62, 26, 'D Hallway'); H('E', 62, 20, 96, 26, 'E Hallway');
-// Building A — iTEC
-strip('A', -104, 6, -56, 20, 'x', [[12, 'lab', 'A110 Networking Lab'], [12, 'lab', 'A112 Cybersecurity Lab'], [10, 'server', 'A114 Data Center'], [14, 'lab', 'A116 iTEC Projects Lab']]);
-strip('A', -104, 26, -56, 40, 'x', [[12, 'class', 'A101 IT Classroom'], [12, 'lab', 'A103 Programming Lab'], [8, 'office', 'A105 Faculty Office'], [16, 'class', 'A107 Learning Center']]);
-// Building B
-H('B', -41, 6, -36, 20, 'B Hallway');
-R('B', -56, 6, -41, 20, 'office', 'B110 Human Resources'); R('B', -36, 6, -24, 20, 'meeting', 'B112 Board Room');
-R('B', -56, 26, -46, 40, 'office', 'B101 Resource Development'); H('B', -46, 26, -40, 40, 'B Entrance', 'lobby');
-R('B', -40, 26, -24, 40, 'office', 'B103 Finance');
-// Building C — administration, library, main entrance
-R('C', -24, 26, -12, 40, 'office', 'C101 Admissions'); R('C', -12, 26, -2, 40, 'office', 'C103 Financial Aid');
-H('C', -2, 26, 14, 40, 'Main Entrance Lobby', 'lobby'); R('C', 14, 26, 30, 40, 'office', 'C105 Student Services');
-R('C', -24, 6, 8, 20, 'library', 'C120 Library · Timberwolf Learning Commons');
-R('C', 8, 6, 18, 20, 'lab', 'C124 Testing Center'); R('C', 18, 6, 26, 20, 'class', 'C126 Academic Resource Center');
-H('C', 26, 6, 30, 20, 'C Courtyard Breezeway');
+/* ───────── Layout traced from NTC's Wausau campus map (ground floor), 8/19/2025 edition ─────────
+   Coordinates below are pixels on that map image (north is up, Campus Drive along the top);
+   P() converts them to metres at 0.27 m per pixel. Each building's footprint is painted as hallway first,
+   then rooms are placed on top — whatever is left over is corridor. */
+const X = (px) => Math.round((px - 680) * 0.27), Z = (py) => Math.round((py - 475) * 0.27);
+const F = (b, x0, y0, x1, y1, name) => H(b, X(x0), Z(y0), X(x1), Z(y1), name);
+const P = (b, x0, y0, x1, y1, type, name) => { const a = X(x0), c = Z(y0); R(b, a, c, Math.max(a + 3, X(x1)), Math.max(c + 3, Z(y1)), type, name); };
+// footprints (corridors)
+F('D', 315, 155, 455, 393, 'D Hallway'); F('D', 262, 318, 320, 393, 'Main Entrance');
+F('E', 455, 130, 520, 393, 'E Hallway'); F('F', 515, 265, 720, 393, 'F Hallway'); F('G', 715, 340, 778, 393, 'G Hallway');
+F('C', 262, 393, 990, 407, 'Main Corridor'); F('C', 330, 407, 470, 600, 'C Hallway'); F('C', 262, 488, 365, 588, 'Library Hallway');
+F('B', 365, 588, 490, 682, 'B Hallway'); F('A', 458, 680, 695, 820, 'A Hallway');
+F('H', 820, 235, 1100, 393, 'H Hallway'); F('H', 862, 407, 1068, 437, 'H Hallway'); F('H', 945, 437, 1080, 612, 'H Hallway'); F('I', 942, 610, 1080, 716, 'I Hallway');
 // Building D
-R('D', 30, 26, 44, 40, 'store', 'D101 Campus Store'); R('D', 44, 26, 54, 40, 'lounge', 'D103 The Den');
-R('D', 54, 26, 62, 40, 'office', 'D105 Transfer & Placement');
-R('D', 30, 6, 46, 20, 'meeting', 'D110 Timberwolf Community Room'); R('D', 46, 6, 62, 20, 'lounge', 'D112 Student Leadership Center');
-// Building E — Campus Café + Activity Center
-R('E', 62, 26, 96, 40, 'cafe', 'E100 Campus Café');
-H('E', 62, -44, 67, 20, 'E Hallway');
-R('E', 67, 6, 80, 20, 'kitchen', 'E110 Kitchen'); R('E', 80, 6, 96, 20, 'meeting', 'E101–102 Meeting Rooms');
-R('EA', 67, -44, 96, 6, 'gym', 'E120 Activity Center');
-// Building F — Technical Center (west wing)
-H('F', -41, -44, -36, 6, 'F Hallway');
-strip('F', -56, -44, -41, 6, 'z', [[12, 'lab', 'F101 Electrical Lab'], [12, 'lab', 'F103 HVAC Lab'], [13, 'class', 'F105 Architectural Design'], [13, 'lab', 'F107 CAD Lab']]);
-strip('F', -36, -44, -20, -20, 'z', [[12, 'class', 'F102 Classroom'], [12, 'class', 'F104 Classroom']]);
-H('F', -36, -20, -20, -17, 'F Courtyard Passage');
-strip('F', -36, -17, -20, 6, 'z', [[11, 'lab', 'F106 Science Lab'], [12, 'lab', 'F108 STEM Center']]);
-// North bar — H Industrial Center, I Advanced Manufacturing & Engineering, G Building & Grounds
-H('HH', -56, -50, -10, -44, 'H Hallway'); H('IH', -10, -50, 67, -44, 'I Hallway');
-strip('H', -56, -80, -10, -50, 'x', [[16, 'shop', 'H101 Welding Lab'], [16, 'garage', 'H103 Automotive Technology'], [14, 'shop', 'H105 Machine Tool']]);
-strip('I', -10, -80, 67, -50, 'x', [[28, 'robot', 'I101 Industry 4.0 Smart Manufacturing Lab'], [22, 'robot', 'I103 Robotics & Automation'], [20, 'shop', 'I105 Electromechanical Lab'], [7, 'storage', 'I107 Tool Crib']]);
-R('G', 67, -80, 96, -44, 'shop', 'G101 Building & Grounds');
+P('D', 318, 160, 365, 210, 'class', 'D150 Classroom'); P('D', 368, 185, 394, 210, 'office', 'D160 Office'); P('D', 398, 158, 440, 200, 'class', 'D172 Classroom');
+P('D', 322, 218, 352, 242, 'office', 'D155A Office'); P('D', 322, 255, 378, 282, 'office', 'D128 Offices'); P('D', 322, 286, 378, 313, 'office', 'D127 Offices');
+P('D', 322, 320, 380, 380, 'store', 'D130 Bookstore'); P('D', 390, 250, 430, 340, 'lounge', 'D112 Student Leadership Center'); P('D', 390, 345, 430, 382, 'lounge', 'D109 The Den');
+P('D', 272, 322, 316, 372, 'meeting', 'D102 Timberwolf Community Room');
+// Building E
+P('E', 462, 135, 495, 170, 'kitchen', 'Spoons'); P('E', 462, 174, 490, 200, 'class', 'E114 Classroom'); P('E', 493, 174, 518, 200, 'class', 'E116 Classroom');
+P('E', 478, 215, 516, 245, 'kitchen', 'E105 Kitchen'); P('E', 462, 249, 512, 285, 'cafe', 'E111 Cafeteria'); P('E', 462, 289, 512, 345, 'cafe', 'E103 Dining Area');
+P('E', 458, 350, 484, 388, 'meeting', 'E101 Meeting Room'); P('E', 487, 350, 514, 388, 'meeting', 'E102 Meeting Room');
+// Building F (lower) and G
+P('F', 522, 270, 560, 300, 'lab', 'E104 Esports'); P('F', 522, 305, 540, 340, 'class', 'F114 Classroom'); P('F', 543, 305, 568, 338, 'class', 'F116 Classroom');
+P('F', 522, 345, 542, 388, 'lab', 'F110 Lab'); P('F', 576, 285, 614, 345, 'shop', 'F105 Technical Lab'); P('F', 576, 350, 614, 388, 'lab', 'F100 Lab');
+P('F', 628, 298, 662, 360, 'shop', 'F113 Technical Lab'); P('F', 666, 298, 712, 388, 'garage', 'F121 Technical Center');
+P('G', 722, 345, 772, 388, 'shop', 'G103 Building & Grounds');
+// Building C + Library
+P('C', 380, 412, 442, 452, 'office', 'C106 Student Services'); P('C', 336, 425, 372, 462, 'lab', 'C143 Testing Center'); P('C', 380, 458, 455, 482, 'office', 'C120 Offices');
+P('C', 336, 470, 372, 486, 'office', 'C157 Advising'); P('C', 312, 490, 372, 510, 'class', 'C170 College Prep Center'); P('C', 312, 513, 372, 538, 'class', 'C175 Academic Resource Center');
+P('C', 380, 490, 400, 508, 'office', 'C135 Office'); P('C', 404, 488, 448, 542, 'office', 'C146 Offices'); P('C', 404, 558, 440, 588, 'office', 'C152 Office');
+P('C', 266, 542, 362, 586, 'library', 'Library'); P('C', 266, 492, 308, 538, 'library', 'Library Commons');
+// Building B
+P('B', 368, 605, 390, 656, 'class', 'C180 Classroom'); P('B', 393, 605, 414, 652, 'class', 'C194 Classroom'); P('B', 448, 612, 480, 634, 'office', 'B113 Office');
+P('B', 426, 630, 446, 670, 'office', 'B127 Human Resources'); P('B', 449, 640, 486, 670, 'office', 'B123 Offices'); P('B', 430, 592, 462, 608, 'office', 'B100 Office');
+// Building A (lower) — iTEC + Workforce Leadership Center
+P('A', 460, 683, 486, 705, 'class', 'A104 Classroom'); P('A', 460, 708, 486, 730, 'class', 'A105 Classroom'); P('A', 460, 733, 486, 757, 'class', 'A107 Classroom'); P('A', 460, 760, 486, 788, 'class', 'A108 Classroom');
+P('A', 474, 795, 502, 818, 'office', 'A111 Office'); P('A', 500, 684, 542, 706, 'lab', 'A122 Lab'); P('A', 500, 752, 548, 786, 'lab', 'A113 Lab');
+P('A', 548, 688, 600, 722, 'lab', 'A134 iTEC'); P('A', 552, 738, 600, 792, 'lab', 'A143 IT Lab'); P('A', 606, 768, 628, 796, 'class', 'A155 WTPD');
+P('A', 630, 688, 656, 716, 'class', 'A159 Classroom'); P('A', 662, 688, 693, 724, 'meeting', 'A168 Workforce Leadership'); P('A', 662, 727, 693, 757, 'class', 'A167 Workforce Leadership');
+P('A', 662, 760, 693, 786, 'class', 'A166 Workforce Leadership'); P('A', 662, 789, 693, 816, 'class', 'A165 Workforce Leadership'); P('A', 630, 796, 658, 818, 'office', 'A162 Office');
+// Building H
+P('H', 824, 240, 905, 300, 'shop', 'H114 Shop'); P('H', 910, 240, 990, 300, 'shop', 'H112 Shop'); P('H', 824, 310, 876, 336, 'lab', 'H117 Lab'); P('H', 824, 340, 852, 358, 'office', 'H119 Office');
+P('H', 824, 362, 852, 390, 'class', 'H101 Classroom'); P('H', 856, 362, 880, 390, 'class', 'H103 Classroom'); P('H', 884, 310, 936, 356, 'shop', 'H113 Shop'); P('H', 942, 310, 986, 356, 'lab', 'H111 Lab');
+P('H', 905, 370, 936, 390, 'office', 'H107 Office'); P('H', 996, 306, 1070, 390, 'shop', 'H108 Shop'); P('H', 1073, 330, 1098, 386, 'storage', 'H110 Storage');
+P('H', 866, 411, 890, 435, 'class', 'H102 Classroom'); P('H', 893, 411, 916, 435, 'class', 'H104 Classroom'); P('H', 919, 411, 942, 435, 'class', 'H106 Classroom');
+P('H', 990, 411, 1010, 433, 'office', 'H124 Office'); P('H', 1013, 411, 1036, 433, 'office', 'H122 Office'); P('H', 1044, 411, 1066, 433, 'office', 'H118 Office');
+P('H', 947, 452, 971, 478, 'class', 'H123 Classroom'); P('H', 947, 482, 971, 506, 'class', 'H127 Classroom'); P('H', 947, 509, 971, 529, 'class', 'H129 Classroom'); P('H', 947, 532, 971, 552, 'class', 'H131 Classroom');
+P('H', 986, 442, 1052, 470, 'shop', 'H137 Shop'); P('H', 986, 473, 1062, 548, 'robot', 'H136 Lab'); P('H', 986, 556, 1050, 600, 'robot', 'H146 Mechatronics & Fluid Power Lab'); P('H', 1053, 568, 1078, 598, 'storage', 'H147 Storage');
+// Building I
+P('I', 946, 616, 984, 644, 'lab', 'I101 Lab'); P('I', 946, 648, 984, 686, 'robot', 'I103 Industry 4.0 Smart Manufacturing Lab'); P('I', 946, 690, 984, 713, 'lab', 'I105 Lab');
+P('I', 994, 614, 1046, 713, 'robot', 'I104 Electronics, Mechanics & Robotics Lab'); P('I', 1050, 640, 1078, 668, 'lab', 'I110 Lab'); P('I', 1050, 684, 1078, 713, 'lab', 'I112 Lab');
 
-/* ───────── Center for Business & Industry (east) ───────── */
-H('CBI', 118, -30, 122, 22, 'CBI Hallway');
-strip('CBI', 106, -30, 118, 22, 'z', [[13, 'meeting', 'CBI 101 Conference Center'], [13, 'class', 'CBI 103 Training Room'], [13, 'office', 'CBI 105 Business Incubator'], [13, 'class', 'CBI 107 Seminar Room']]);
-strip('CBI', 122, -30, 134, 22, 'z', [[13, 'class', 'CBI 102 Workforce Training'], [13, 'lab', 'CBI 104 Computer Lab'], [13, 'office', 'CBI 106 Offices'], [13, 'lounge', 'CBI 108 Break Room']]);
-
-/* ───────── Center for Health Sciences (across W. Campus Drive) ───────── */
-H('CHS', -10, 98, 62, 102, 'CHS Hallway'); H('CHS', 20, 88, 34, 98, 'CHS Lobby', 'lobby');
-strip('CHS', -10, 88, 20, 98, 'x', [[16, 'clinic', 'CHS 1002 Dental Clinic'], [14, 'lab', 'CHS 1006 Dental Hygiene Lab']]);
-strip('CHS', 34, 88, 62, 98, 'x', [[14, 'lab', 'CHS 1010 Radiography'], [14, 'clinic', 'CHS 1014 Nursing Skills Lab']]);
-strip('CHS', -10, 102, 62, 114, 'x', [[32, 'auditorium', 'CHS 1004 Auditorium'], [14, 'clinic', 'CHS 1008 Simulation Center'], [14, 'lab', 'CHS 1012 Medical Lab'], [12, 'clinic', 'CHS 1016 Surgical Tech']]);
-
-/* ───────── Center for Geriatric Education ───────── */
-H('CGE', 74, 98, 110, 102, 'CGE Hallway'); H('CGE', 86, 90, 92, 98, 'CGE Lobby', 'lobby');
-R('CGE', 74, 90, 86, 98, 'dorm', 'CGE 101 Apartment Lab'); R('CGE', 92, 90, 110, 98, 'clinic', 'CGE 103 Skills Lab');
-R('CGE', 74, 102, 92, 110, 'class', 'CGE 102 Classroom'); R('CGE', 92, 102, 110, 110, 'meeting', 'CGE 104 Community Room');
-
-/* ───────── Timberwolf Suites (student housing, north-east) ───────── */
-H('TWS', 104, -105, 134, -101, 'Suites Hallway'); H('TWS', 113, -101, 119, -92, 'Suites Lobby', 'lobby');
-strip('TWS', 104, -114, 134, -105, 'x', [[8, 'dorm', 'Suite 101'], [7, 'dorm', 'Suite 103'], [7, 'dorm', 'Suite 105'], [8, 'dorm', 'Suite 107']]);
-R('TWS', 104, -101, 113, -92, 'dorm', 'Suite 102'); R('TWS', 119, -101, 126, -92, 'storage', 'Laundry'); R('TWS', 126, -101, 134, -92, 'dorm', 'Suite 104');
-
-R('SHED', -126, -76, -116, -68, 'storage', 'Storage Shed');
-
-// Exterior doors. o:'h' = wall running east-west at z; o:'v' = wall running north-south at x. w = width.
+// Exterior doors: approximate spot on the map; each snaps to the nearest outside wall. w = width in metres.
+const E = (px, py, w, label, extra = {}) => ({ x: X(px), z: Z(py), w, label, ...extra });
 export const EXITS = [
-  { o: 'h', z: 40, x: 3, w: 6, label: 'NORTHCENTRAL TECHNICAL COLLEGE', big: 1 },
-  { o: 'h', z: 40, x: -45, w: 4, label: 'B ENTRANCE' },
-  { o: 'h', z: 40, x: -66, w: 2, label: 'A · iTEC' },
-  { o: 'v', x: -104, z: 22, w: 2, label: 'A ENTRANCE' },
-  { o: 'v', x: 96, z: 22, w: 2, label: 'E ENTRANCE' },
-  { o: 'h', z: 40, x: 78, w: 3, label: 'CAMPUS CAFÉ' },
-  { o: 'h', z: 6, x: 27, w: 2 }, { o: 'h', z: 6, x: -8, w: 2 },
-  { o: 'v', x: -20, z: -20, w: 3 }, { o: 'h', z: -44, x: 27, w: 2 }, { o: 'v', x: 62, z: -20, w: 3 },
-  { o: 'v', x: 96, z: -20, w: 3, label: 'ACTIVITY CENTER' },
-  { o: 'h', z: -80, x: -34, w: 4, garage: 1 }, { o: 'h', z: -80, x: 2, w: 4, garage: 1 }, { o: 'h', z: -80, x: 78, w: 4, garage: 1 },
-  { o: 'v', x: -56, z: -48, w: 2, label: 'H ENTRANCE' },
-  { o: 'h', z: 88, x: 24, w: 6, label: 'CENTER FOR HEALTH SCIENCES', big: 1 },
-  { o: 'v', x: 62, z: 99, w: 2 }, { o: 'v', x: -10, z: 99, w: 2 },
-  { o: 'h', z: 22, x: 119, w: 2, label: 'CBI' }, { o: 'h', z: -30, x: 119, w: 2 },
-  { o: 'h', z: 90, x: 88, w: 2, label: 'GERIATRIC EDUCATION' },
-  { o: 'h', z: -92, x: 115, w: 2, label: 'TIMBERWOLF SUITES' },
-  { o: 'v', x: -116, z: -73, w: 2 },
+  E(262, 383, 4, 'MAIN ENTRANCE', { big: 1 }), E(316, 232, 2, 'D ENTRANCE'), E(345, 590, 3, 'LOWER C ENTRANCE'), E(410, 682, 2, 'B ENTRANCE'), E(575, 820, 3, 'LOWER A ENTRANCE'),
+  E(575, 265, 2, 'F ENTRANCE'), E(1012, 300, 2, 'H ENTRANCE'), E(600, 407, 2), E(780, 407, 2), E(470, 520, 2), E(945, 520, 2), E(560, 680, 2), E(1010, 716, 3), E(488, 130, 2), E(778, 372, 2), E(1080, 500, 2), E(695, 740, 2),
 ];
 
-// Outdoor ground paint, applied in order. Types: road, lot, conc, sand, court, field (default grass).
 export const GTYPES = ['grass', 'road', 'lot', 'conc', 'sand', 'court', 'field'];
 const GROUND = [
-  ['road', -140, 70, 140, 80], ['conc', -140, 66, 140, 69], ['conc', -140, 81, 140, 84], ['road', 97, -90, 102, 70],
-  ['lot', -100, 44, -30, 64], ['lot', 22, 44, 94, 64], ['lot', -134, -4, -110, 62], ['lot', -130, -84, -62, -2],
-  ['lot', 104, 28, 134, 62], ['lot', -84, 88, -16, 112],
-  ['conc', -104, 40, 96, 43], ['conc', -8, 43, 20, 66], ['conc', -60, -50, -56, 6], ['conc', -56, -84, 96, -80],
-  ['conc', 26, -44, 30, 6], ['conc', -20, -20, 62, -17], ['conc', -2, -34, 10, -24], ['sand', 36, -40, 54, -28],
-  ['court', 36, -12, 56, 2], ['conc', 4, -12, 12, -4], ['field', -50, -114, 60, -88],
-  ['conc', 118, 22, 122, 28], ['conc', 24, 84, 30, 88], ['conc', 87, 84, 91, 90], ['conc', 114, -92, 118, -88],
+  ['road', -140, -116, 140, -108], ['conc', -140, -107, 140, -105],
+  ['lot', -134, -104, -64, -90], ['lot', -137, -72, -118, -32], ['lot', -137, -6, -118, 42], ['lot', -114, 62, -64, 112], ['lot', 36, -103, 112, -72], ['lot', -52, 98, 44, 114], ['lot', 118, -30, 136, 70],
+  ['conc', -117, -32, -113, -20], ['conc', -54, -17, 70, -15], ['conc', -22, -17, -19, 54], ['conc', -54, 18, 70, 20], ['conc', -2, 14, 10, 26], ['sand', 30, 26, 48, 38], ['conc', 16, 0, 24, 8],
 ];
 export const LOTS = [
-  { name: 'Parking Lot A', x0: -100, z0: 44, x1: -30, z1: 64 }, { name: 'Parking Lot B', x0: 22, z0: 44, x1: 94, z1: 64 },
-  { name: 'Parking Lot C', x0: -134, z0: -4, x1: -110, z1: 62 }, { name: 'Parking Lot E', x0: -130, z0: -84, x1: -62, z1: -2 },
-  { name: 'CBI Lot D', x0: 104, z0: 28, x1: 134, z1: 62 }, { name: 'CHS Parking', x0: -84, z0: 88, x1: -16, z1: 112 },
+  { name: 'Parking Lot D', x0: -134, z0: -104, x1: -64, z1: -90 }, { name: 'Parking Lot C', x0: -137, z0: -72, x1: -118, z1: -32 }, { name: 'Parking Lot B', x0: -137, z0: -6, x1: -118, z1: 42 },
+  { name: 'Parking Lot A', x0: -114, z0: 62, x1: -64, z1: 112 }, { name: 'Parking Lot E', x0: 36, z0: -103, x1: 112, z1: -72 }, { name: 'South Lot', x0: -52, z0: 98, x1: 44, z1: 114 }, { name: 'East Lot', x0: 118, z0: -30, x1: 136, z1: 70 },
 ];
-const ZONES = [
-  ...LOTS,
-  { name: 'Courtyard', x0: -20, z0: -44, x1: 62, z1: 6 }, { name: 'Main Entrance Plaza', x0: -8, z0: 40, x1: 20, z1: 66 },
-  { name: 'W. Campus Drive', x0: -140, z0: 66, x1: 140, z1: 84 }, { name: 'Athletic Fields', x0: -50, z0: -116, x1: 60, z1: -86 },
-  { name: 'Disc Golf Course', x0: 98, z0: -90, x1: 138, z1: -32 }, { name: 'College Drive', x0: 96, z0: -90, x1: 103, z1: 70 },
-];
-// Hide & Seek play areas. tier: 0 small (up to 5 players), 1 medium (up to 12), 2 large (up to 24). r = [x0, z0, x1, z1].
+const ZONES = [...LOTS, { name: 'Courtyard', x0: -56, z0: -18, x1: 72, z1: 56 }, { name: 'Campus Drive', x0: -140, z0: -118, x1: 140, z1: -104 }];
+// Hide & Seek play areas (map pixels → metres). tier: 0 small (≤5 players), 1 medium (≤12), 2 large (≤24).
+const AR = (n, t, x0, y0, x1, y1) => ({ n, t, r: [X(x0) - 1, Z(y0) - 1, X(x1) + 1, Z(y1) + 1] });
 export const ARENAS = [
-  { n: 'Building A · iTEC', t: 0, r: [-104, 6, -56, 40] }, { n: 'Building C', t: 0, r: [-24, 6, 30, 40] }, { n: 'Building F', t: 0, r: [-56, -44, -20, 6] },
-  { n: 'Buildings D & E', t: 0, r: [30, 6, 96, 40] }, { n: 'Center for Health Sciences', t: 0, r: [-10, 88, 62, 114] },
-  { n: 'Buildings A, B & C', t: 1, r: [-104, 6, 30, 40] }, { n: 'Buildings D & E + Activity Center', t: 1, r: [30, -44, 96, 40] },
-  { n: 'Buildings H, I & G', t: 1, r: [-56, -80, 96, -44] }, { n: 'Building F + Courtyard', t: 1, r: [-56, -44, 62, 6] },
-  { n: 'Main Building', t: 2, r: [-104, -80, 96, 40] },
+  AR('Building A · iTEC', 0, 458, 680, 695, 820), AR('Building C & Library', 0, 262, 393, 470, 600), AR('Building D', 0, 262, 155, 455, 407), AR('Buildings E & F', 0, 455, 130, 778, 407),
+  AR('Building H shops', 0, 820, 235, 1100, 437), AR('Buildings H & I labs', 0, 942, 407, 1080, 716),
+  AR('Buildings D, E, F & G', 1, 262, 130, 778, 407), AR('Buildings A, B & C', 1, 262, 393, 695, 820), AR('Buildings H & I', 1, 820, 235, 1100, 716),
+  AR('Main Building', 2, 262, 130, 1100, 820),
 ];
 export const SPECIAL = {
-  gazebo: { x: 4, z: -29 }, firepit: { x: 8, z: -8 }, sign: { x: 6, z: 62.5 }, net: { x: 45, z0: -40, z1: -28 },
-  teacherRoom: 'A105 Faculty Office',
+  gazebo: { x: 4, z: 20 }, firepit: { x: 20, z: 4 }, sign: { x: -124, z: -40 }, net: { x: 39, z0: 26, z1: 38 },
+  teacherRoom: 'A134 iTEC',
 };
 
 let cache = null;
@@ -206,7 +173,19 @@ export function buildCampus() {
     }
     doorMeta.push({ o, c, a, b: a + w, ...meta });
   };
-  for (const e of EXITS) carve(e.o, e.o === 'h' ? e.z : e.x, e.o === 'h' ? e.x : e.z, e.w, { ext: 1, label: e.label, big: e.big, garage: e.garage });
+  for (const e of EXITS) {
+    let best = null;
+    for (let j = Math.max(1, e.z - OZ - 8); j < Math.min(GZ, e.z - OZ + 9); j++) for (let i = Math.max(1, e.x - OX - 8); i < Math.min(GX, e.x - OX + 9); i++) {
+      const hk = hW[j * GX + i] & 7, vk = vW[j * (GX + 1) + i] & 7, d = Math.hypot(i + OX - e.x, j + OZ - e.z);
+      if (hW[j * GX + i] > 0 && (hk === 2 || hk === 3) && (!best || d < best.d)) best = { d, o: 'h', c: j + OZ, a: i + OX };
+      if (vW[j * (GX + 1) + i] > 0 && (vk === 2 || vk === 3) && (!best || d < best.d)) best = { d, o: 'v', c: i + OX, a: j + OZ };
+    }
+    if (!best) continue;
+    // widen along the wall while it stays the same exterior wall
+    const code = (t) => (best.o === 'h' ? hW[(best.c - OZ) * GX + (t - OX)] : vW[(t - OZ) * (GX + 1) + (best.c - OX)]), c0 = code(best.a);
+    let a0 = best.a, w = 1; while (w < e.w && code(a0 + w) === c0) w++; while (w < e.w && code(a0 - 1) === c0) { a0--; w++; }
+    carve(best.o, best.c, a0, w, { ext: 1, label: e.label, big: e.big });
+  }
   // automatic interior doors: each room opens onto the longest stretch of hallway it touches
   const isHallId = (id) => id > 0 && id < 1000;
   for (let ri = 1; ri < rooms.length; ri++) {

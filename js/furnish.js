@@ -205,20 +205,15 @@ export function furnish(campus) {
     // lamp posts down the middle
     for (let u = 6; u < L - 4; u += 16) put('lamp', X ? l.x0 + u : l.x0 + S / 2, X ? l.z0 + S / 2 : l.z0 + u, X ? 1 : 0, out);
   }
-  for (let x = -128; x <= 128; x += 22) { put('lamp', x, 67.5, 1, out); put('lamp', x + 11, 82.5, 3, out); }
-  for (let x = -96; x <= 92; x += 12) { if (rng() < 0.7) put(pick(['bench', 'bench', 'trash', 'plant', 'recycle']), x + R(-2, 2), 40.6, 0, out); }
-  put('flagpole', -3, 58, 0, out); put('flagpole', 0, 58, 0, out); put('flagpole', 3, 58, 0, out);
-  for (const [x, z] of [[-5, 46], [17, 46], [-5, 54], [17, 54]]) put('plant', x, z, 0, out);
-  put('bench', -6.5, 50, 1, out); put('bench', 18.5, 50, 3, out); put('trash', 12, 42, 0, out); put('recycle', 0, 42, 0, out);
+  for (let x = -128; x <= 128; x += 22) put('lamp', x, -104.5, 1, out);
+  put('flagpole', -126, -30, 0, out); put('flagpole', -126, -27, 0, out); put('flagpole', -126, -24, 0, out);
   // courtyard
   const fp = SPECIAL.firepit; put('firepit', fp.x, fp.z, 0, out);
   put('bench', fp.x, fp.z - 2.6, 0, out); put('bench', fp.x, fp.z + 2.6, 2, out); put('bench', fp.x - 2.6, fp.z, 1, out); put('bench', fp.x + 2.6, fp.z, 3, out);
-  for (const [x, z] of [[-12, -6], [-12, -30], [-6, -38], [18, -36], [20, -2], [50, -22], [56, -38], [32, -22], [-14, -14]]) put('picnic', x, z, RI(2), out);
-  put('hoop', 37.2, -5, 1, out); put('hoop', 54.8, -5, 3, out);
-  for (let i = 0; i < 10; i++) put(pick(['trash', 'bench', 'recycle', 'backpack', 'cone']), R(-18, 60), R(-42, 4), RI(4), out);
-  // disc golf + grounds
-  for (const [x, z] of [[108, -84], [130, -76], [112, -62], [132, -52], [110, -40], [70, -100], [20, -84.5], [-70, -100], [-110, -100]]) put('discbasket', x, z, 0, out);
-  for (const [x, z] of [[-58, -60], [-58, -30], [98.5, -84], [64, 86], [-12, 116]]) put('dumpster', x, z, 1, out);
+  for (const [x, z] of [[-40, 0], [-30, 30], [-8, 40], [30, 6], [50, 0], [56, 44], [-44, 46], [14, 46], [60, 20]]) put('picnic', x, z, RI(2), out);
+  for (let i = 0; i < 14; i++) put(pick(['trash', 'bench', 'recycle', 'backpack', 'cone', 'bench']), R(-52, 68), R(-12, 54), RI(4), out);
+  for (const [x, z] of [[108, -60], [126, 84], [80, 100], [-100, 52], [100, 84], [-90, -60], [90, -50], [-126, 90], [70, 76]]) put('discbasket', x, z, 0, out);
+  for (const [x, z] of [[20, -80], [100, -30], [-60, 90]]) put('dumpster', x, z, 1, out);
   for (let i = 0; i < 26; i++) put(pick(['cone', 'trash', 'bench', 'picnic', 'crate', 'barrel', 'backpack']), R(-132, 132), R(-112, 112), RI(4), out);
 
   // trees: autumn hardwoods + pines on open grass
