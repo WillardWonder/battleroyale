@@ -118,7 +118,7 @@ function makeSky() {
       uniform vec3 sunDir; uniform float time; varying vec3 vDir;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
       float noise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }
-      float fbm(vec2 p){ float a=0.5, s=0.0; for(int i=0;i<5;i++){ s+=a*noise(p); p*=2.03; a*=0.5; } return s; }
+      float fbm(vec2 p){ float a=0.5, s=0.0; for(int i=0;i<3;i++){ s+=a*noise(p); p*=2.03; a*=0.5; } return s; }
       void main(){
         vec3 d = normalize(vDir); float h = max(d.y, 0.0);
         vec3 zen = vec3(0.07,0.30,0.95), hor = vec3(0.62,0.82,1.15);
@@ -179,19 +179,19 @@ export class World {
   }
 
   _mats() {
-    const S = (tex, o = {}) => new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, metalness: 0, vertexColors: true, ...o });
+    const S = (tex, o = {}) => { const { roughness, metalness, ...rest } = o; return new THREE.MeshLambertMaterial({ map: tex, vertexColors: true, ...rest }); };
     const M = (this.mat = {
       brick: S(T.brick(), { roughness: 0.95 }), paint: S(T.paint(), { roughness: 0.85 }),
       tile: S(T.tile(), { roughness: 0.38 }), carpet: S(T.carpet(), { roughness: 1 }), vinyl: S(T.vinyl(), { roughness: 0.45 }), wood: S(T.wood(), { roughness: 0.35 }),
       conc: S(T.conc(), { roughness: 0.9 }), cafe: S(T.cafe(), { roughness: 0.4 }), grass: S(T.grass(), { roughness: 1 }), asphalt: S(T.asphalt(), { roughness: 0.95 }),
       sand: S(T.sand(), { roughness: 1 }), court: S(T.court(), { roughness: 0.8 }), field: S(T.field(), { roughness: 1 }),
-      ceil: S(T.ceil(), { roughness: 1, emissive: 0xffffff, emissiveMap: T.ceilE(), emissiveIntensity: 1.25 }), roof: S(T.roof(), { roughness: 1 }),
-      trim: new THREE.MeshStandardMaterial({ color: 0x143a66, roughness: 0.45, metalness: 0.55, vertexColors: true }),
-      glass: new THREE.MeshStandardMaterial({ color: 0x9fc4e0, roughness: 0.06, metalness: 0.2, transparent: true, opacity: 0.28, vertexColors: true, depthWrite: false }),
-      glassDark: new THREE.MeshStandardMaterial({ color: 0x24405e, roughness: 0.08, metalness: 0.85, vertexColors: true }),
+      ceil: S(T.ceil(), { roughness: 1, emissive: 0xffffff, emissiveMap: T.ceilE(), emissiveIntensity: 0.9 }), roof: S(T.roof(), { roughness: 1 }),
+      trim: new THREE.MeshLambertMaterial({ color: 0x1a4a82, vertexColors: true }),
+      glass: new THREE.MeshLambertMaterial({ color: 0xa9d2f0, transparent: true, opacity: 0.3, vertexColors: true, depthWrite: false }),
+      glassDark: new THREE.MeshLambertMaterial({ color: 0x2f5a86, vertexColors: true }),
       line: new THREE.MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
-      prop: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0.05 }),
-      leaf: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true }),
+      prop: new THREE.MeshLambertMaterial({ vertexColors: true }),
+      leaf: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
     });
     for (const k of ['ceil', 'roof', 'tile', 'carpet', 'vinyl', 'wood', 'conc', 'cafe']) M[k].shadowSide = THREE.DoubleSide;
     this.uvs = { brick: 1 / 3, paint: 1 / 8, tile: 0.5, carpet: 0.5, vinyl: 1, wood: 0.4, conc: 0.4, cafe: 0.5, grass: 1 / 9, asphalt: 0.25, sand: 0.3, court: 0.25, field: 0.1, ceil: 1 / 2.4, roof: 0.25, trim: 1, glass: 1, glassDark: 1, line: 1 };
@@ -213,24 +213,20 @@ export class World {
     this.sky = makeSky(); this.scene.add(this.sky);
     this.scene.fog = new THREE.Fog(FOG, 220, 1300);
     this.scene.background = new THREE.Color(FOG);
-    this.hemi = new THREE.HemisphereLight(0xcfe2ff, 0x8d8468, 0.8); this.scene.add(this.hemi);
-    this.amb = new THREE.AmbientLight(0xfff4e2, 0.28); this.scene.add(this.amb);
+    this.hemi = new THREE.HemisphereLight(0xd6e6ff, 0xc4bca8, 1.25); this.scene.add(this.hemi);
+    this.amb = new THREE.AmbientLight(0xfff4e2, 0.5); this.scene.add(this.amb);
     const sun = (this.sun = new THREE.DirectionalLight(0xfff0d8, 3.7));
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
     const sc = sun.shadow.camera; sc.left = -62; sc.right = 62; sc.top = 62; sc.bottom = -62; sc.near = 1; sc.far = 320;
     sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04;
     this.scene.add(sun); this.scene.add(sun.target);
-    // image-based ambient from the sky so glass/metal and interiors pick up colour
-    try {
-      const pm = new THREE.PMREMGenerator(this.renderer), s2 = new THREE.Scene(); s2.add(makeSky());
-      this.scene.environment = pm.fromScene(s2, 0, 1, 2000).texture; this.scene.environmentIntensity = 0.6; pm.dispose();
-    } catch (e) { console.warn('env map skipped', e); }
+    sun.shadow.autoUpdate = false; this._sx = 1e9; this._sz = 1e9;
   }
 
   _terrain() {
     const { roomGrid, ground, rooms } = this.campus;
     // far ground + playable ground strips by surface type
-    const far = new THREE.Mesh(new THREE.CircleGeometry(1700, 40), new THREE.MeshStandardMaterial({ color: 0x6d8a3e, roughness: 1 }));
+    const far = new THREE.Mesh(new THREE.CircleGeometry(1700, 40), new THREE.MeshLambertMaterial({ color: 0x6d8a3e }));
     far.rotation.x = -Math.PI / 2; far.position.y = -0.06; far.receiveShadow = true; this.scene.add(far);
     for (let j = 0; j < GZ; j++) {
       let s = 0, cur = null;
@@ -424,7 +420,7 @@ export class World {
       col.set(ski ? 0xdfe6ee : 0x6b6a3c).lerp(new THREE.Color(ski ? 0xdfe6ee : 0x8a5a2c), ski ? 0 : tv * 0.6); cols.push(col.r, col.g, col.b);
     }
     mg.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); mg.computeVertexNormals();
-    const mtn = new THREE.Mesh(mg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true }));
+    const mtn = new THREE.Mesh(mg, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
     mtn.position.set(-520, 0, 640); mtn.rotation.y = -0.55; this.scene.add(mtn);
     this.flush();
   }
@@ -440,7 +436,7 @@ export class World {
 
   setQuality(q) {
     this.sun.castShadow = q > 0; this.renderer.shadowMap.enabled = q > 0;
-    const size = q >= 2 ? 2048 : 1024;
+    const size = 2048; this._sx = 1e9;
     if (this.sun.shadow.mapSize.x !== size) { this.sun.shadow.mapSize.set(size, size); if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; } }
     for (const k in this.mat) this.mat[k].needsUpdate = true;
   }
@@ -448,9 +444,13 @@ export class World {
   update(dt, time, focus) {
     this.sky.material.uniforms.time.value = time;
     this.sky.position.copy(focus);
-    // shadow frustum follows the player, snapped to texels to avoid shimmer
-    const snap = 124 / this.sun.shadow.mapSize.x * 4, fx = Math.round(focus.x / snap) * snap, fz = Math.round(focus.z / snap) * snap;
-    this.sun.target.position.set(fx, 0, fz); this.sun.position.set(fx + SUN.x * 160, SUN.y * 160, fz + SUN.z * 160); this.sun.target.updateMatrixWorld();
+    // shadows are static: re-render the shadow map only when the player crosses into a new 6 m cell
+    const fx = Math.round(focus.x / 6) * 6, fz = Math.round(focus.z / 6) * 6;
+    if (fx !== this._sx || fz !== this._sz) {
+      this._sx = fx; this._sz = fz;
+      this.sun.target.position.set(fx, 0, fz); this.sun.position.set(fx + SUN.x * 160, SUN.y * 160, fz + SUN.z * 160); this.sun.target.updateMatrixWorld();
+      this.sun.shadow.needsUpdate = true;
+    }
     if (this.wobbles.length) {
       const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3(1, 1, 1);
       for (let i = this.wobbles.length - 1; i >= 0; i--) {

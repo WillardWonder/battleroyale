@@ -2,19 +2,19 @@
 import * as THREE from '../vendor/three.js';
 import { MB } from './world.js';
 
-const charMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 });
+const charMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 const m4 = new THREE.Matrix4();
 const SKIN = [0xf1c9a5, 0xe0ac86, 0xc68c5e, 0x9c6b43, 0x6f4a2e, 0xf6d7bd];
 const HAIR = [0x2b1d14, 0x4a3222, 0x8a5a2c, 0xd9b36a, 0x16130f, 0x6e3b24, 0x9aa0a6];
 export const SHIRTS = [0xe63946, 0x1d78d6, 0x2a9d8f, 0xf4a261, 0x8e5bd9, 0xff6fae, 0x3fb950, 0xffd23f, 0x14c2c8, 0xf06a2a, 0x7d8597, 0xb5179e];
 
-function part(build) { const mb = new MB(); build(mb); const m = new THREE.Mesh(mb.build(), charMat); m.castShadow = true; return m; }
+function part(build) { const mb = new MB(); build(mb); const m = new THREE.Mesh(mb.build(), charMat); return m; }
 const T = (x, y, z) => m4.makeTranslation(x, y, z);
 
 export function makeRuler() {
   const mb = new MB(); mb.box(-0.02, 0, -0.004, 0.02, 0.9, 0.004, 1, [0.9, 0.62, 0.12], 63);
   for (let i = 1; i < 12; i++) mb.box(-0.02, i * 0.075, -0.0055, i % 3 ? -0.004 : 0.008, i * 0.075 + 0.006, 0.0055, 1, [0.08, 0.06, 0.03], 63);
-  const m = new THREE.Mesh(mb.build(), charMat); m.castShadow = true; return m;
+  const m = new THREE.Mesh(mb.build(), charMat); return m;
 }
 export function makePaperBall(r = 0.07) {
   const g = new THREE.IcosahedronGeometry(r, 1), p = g.attributes.position;
@@ -33,7 +33,7 @@ export function makeWeapon(kind) {
   else if (kind === 'dodge') { b(0.14, 0.14, 0.5, 0, 0.03, -0.16, 0x1d78d6); b(0.17, 0.17, 0.08, 0, 0.03, -0.42, 0xffd23f); b(0.05, 0.16, 0.06, 0, -0.11, 0.05, 0x23272e); b(0.05, 0.12, 0.05, 0, -0.1, -0.2, 0x23272e); b(0.1, 0.1, 0.1, 0, 0.16, -0.02, 0xe63946); }
   else if (kind === 'laser') { b(0.035, 0.035, 0.62, 0, 0.03, -0.2, 0x8a9099); b(0.05, 0.05, 0.16, 0, 0.03, 0.06, 0x23272e); b(0.04, 0.13, 0.05, 0, -0.06, 0.06, 0x23272e); b(0.045, 0.045, 0.2, 0, 0.09, -0.1, 0x23272e); b(0.03, 0.03, 0.03, 0, 0.03, -0.52, 0xff2d2d); }
   else { b(0.07, 0.07, 0.07, 0, 0, 0, 0xf7f5ee); }
-  const m = new THREE.Mesh(mb.build(), charMat); m.castShadow = true; return m;
+  const m = new THREE.Mesh(mb.build(), charMat); return m;
 }
 
 /* Humanoid: stylised low-poly student / teacher with a procedural walk cycle. */

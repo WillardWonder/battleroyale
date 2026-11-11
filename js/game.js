@@ -13,7 +13,7 @@ const EYE = 1.62, EYE_C = 1.1, TAU = Math.PI * 2;
 const QUIZ_CD = 40, TAUNT_CD = 6, AUTO_TAUNT = 32, RULER_CD = 0.62, PAPER_CD = 0.7, RULER_RANGE = 2.9;
 const _v = new THREE.Vector3(), _v2 = new THREE.Vector3();
 const colorOf = (uid) => '#' + SHIRTS[hashStr(uid) % SHIRTS.length].toString(16).padStart(6, '0');
-const loadOpts = () => { try { return { sens: 1, fov: 78, quality: 2, vol: 0.7, ...JSON.parse(localStorage.getItem('hh-opts') || '{}') }; } catch { return { sens: 1, fov: 78, quality: 2, vol: 0.7 }; } };
+const loadOpts = () => { try { return { sens: 1, fov: 78, quality: 1, vol: 0.7, ...JSON.parse(localStorage.getItem('hh-opts2') || '{}') }; } catch { return { sens: 1, fov: 78, quality: 1, vol: 0.7 }; } };
 
 class Particles {
   constructor(scene, n = 600) {
@@ -49,7 +49,7 @@ export class Game {
   constructor(canvas, sfx, ui) {
     this.canvas = canvas; this.sfx = sfx; this.ui = ui; this.opts = loadOpts();
     const r = (this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }));
-    r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.12; r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
+    r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05; r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(this.opts.fov, 1, 0.07, 1900); this.camera.rotation.order = 'YXZ'; this.scene.add(this.camera);
     this.world = new World(r, this.scene);
@@ -70,12 +70,12 @@ export class Game {
       prop: 'chair', propYaw: 0, lock: false, morphs: 3, patience: 100, stun: 0, quizAt: 0, tauntAt: 0, autoTaunt: 0, rulerAt: 0, paperAt: 0, shot: 0, pendingMelee: 0,
       weapons: [], slot: 0, fireAt: 0, reloadEnd: 0, kills: 0, sc: 0, stepAcc: 0, zoneTick: 0, becomeAt: 0, place: 0 };
   }
-  saveOpts() { localStorage.setItem('hh-opts', JSON.stringify(this.opts)); }
+  saveOpts() { localStorage.setItem('hh-opts2', JSON.stringify(this.opts)); }
   applyOpts() {
-    const o = this.opts; this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, [1, 1.5, 2][o.quality]));
+    const o = this.opts;
     this.world.setQuality(o.quality); this.sfx.setVolume(o.vol); this.camera.fov = o.fov; this.camera.updateProjectionMatrix(); this.resize();
   }
-  resize() { const w = window.innerWidth, h = window.innerHeight; this.renderer.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
+  resize() { const w = window.innerWidth, h = window.innerHeight; this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Math.sqrt([0.75e6, 1.25e6, 2.3e6][this.opts.quality] / (w * h)))); this.renderer.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
   get locked() { return this.testMode || document.pointerLockElement === this.canvas; }
   lock() { this.sfx.unlock(); if (!this.testMode && this.canvas.requestPointerLock) { try { const p = this.canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch { /* ignore */ } } }
 
@@ -223,7 +223,7 @@ export class Game {
     const key = show ? `${p.role}|${p.sub || ''}|${p.prop || ''}|${p.w || ''}|${p.n}` : '';
     if (key === r.key) return; this._dropVis(r); r.key = key; if (!show) return;
     if (p.role === 'hider' && PROPS[p.prop]) {
-      const mesh = new THREE.Mesh(this.world.propGeo[p.prop], this.world.mat.prop); mesh.castShadow = mesh.receiveShadow = true;
+      const mesh = new THREE.Mesh(this.world.propGeo[p.prop], this.world.mat.prop); mesh.receiveShadow = true;
       r.vis = { obj: mesh, prop: PROPS[p.prop] };
     } else {
       const teacher = p.role === 'hunter' && p.sub !== 'mon', h = makeHumanoid({ shirt: SHIRTS[hashStr(r.uid) % SHIRTS.length], seed: hashStr(r.uid), teacher, monitor: p.role === 'hunter' && !teacher });
@@ -353,7 +353,7 @@ export class Game {
     else this.vm.setMode('none', '');
     if (me.role === 'hider' && me.alive) {
       if (this.myProp) this.scene.remove(this.myProp);
-      this.myProp = new THREE.Mesh(this.world.propGeo[me.prop], this.world.mat.prop); this.myProp.castShadow = this.myProp.receiveShadow = true; this.scene.add(this.myProp);
+      this.myProp = new THREE.Mesh(this.world.propGeo[me.prop], this.world.mat.prop); this.myProp.receiveShadow = true; this.scene.add(this.myProp);
     }
   }
   fwd(out = _v) { const me = this.me, cp = Math.cos(me.pitch); return out.set(-Math.sin(me.yaw) * cp, Math.sin(me.pitch), -Math.cos(me.yaw) * cp); }
@@ -479,7 +479,7 @@ export class Game {
   spawnProjectile(kind, x, y, z, dx, dy, dz, mine) {
     const dodge = kind === 'dodge', W = dodge ? WEAPONS.dodge : WEAPONS.paper, speed = kind === 'paperT' ? 31 : W.speed;
     const mesh = dodge ? new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 2), new THREE.MeshStandardMaterial({ color: 0xd62828, roughness: 0.6 })) : makePaperBall(0.075);
-    mesh.castShadow = true; mesh.position.set(x, y, z); this.scene.add(mesh);
+    mesh.position.set(x, y, z); this.scene.add(mesh);
     this.projectiles.push({ kind, x, y, z, vx: dx * speed, vy: dy * speed, vz: dz * speed, g: dodge ? W.grav : 9, life: 3.5, mine, mesh });
     if (!mine) this.sfx.play(dodge ? 'dodge' : 'throw', { x, y, z }, 0.9);
   }
