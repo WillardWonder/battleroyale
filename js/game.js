@@ -4,7 +4,7 @@ import { World } from './world.js';
 import { Hud } from './hud.js';
 import { PROPS, MORPHS } from './props.js';
 import { rayBox } from './physics.js';
-import { BOUNDS } from './campus.js';
+import { BOUNDS, ARENAS } from './campus.js';
 import { makeHumanoid, makeNameTag, makeViewModel, makeWeapon, makePaperBall, SHIRTS } from './models.js';
 import { WEAPONS, LOOT_TABLE, LOOT_INFO, ZONE_PHASES, ZONE_START_R, SEND_HZ, INTERP_DELAY } from './config.js';
 import { mulberry32, hashStr, clamp, lerp, lerpAngle, esc, fmtTime } from './util.js';
@@ -172,8 +172,15 @@ export class Game {
       while (list.length < Math.min(m.set.hunters || 1, ids.length) && pool.length) list.push(pool.splice((Math.random() * pool.length) | 0, 1)[0]);
       hunters = list.join(',');
     }
+    // Hide & Seek play area scales with the number of players
+    let area = -1;
+    if (m.mode === 'hs') {
+      const pref = m.set.area || 'auto', n = ids.length, tier = pref === 'auto' ? (n <= 5 ? 0 : n <= 12 ? 1 : n <= 24 ? 2 : 3) : +pref;
+      const opts = ARENAS.map((a, i) => (a.t === tier ? i : -1)).filter((i) => i >= 0);
+      if (opts.length) area = opts[(Math.random() * opts.length) | 0];
+    }
     this.net.resetRound();
-    this.net.setMeta({ state: 'play', round: (m.round || 0) + 1, seed: (Math.random() * 2147483647) | 0, t0: this.net.now() + 5000, hunters, res: null });
+    this.net.setMeta({ area, state: 'play', round: (m.round || 0) + 1, seed: (Math.random() * 2147483647) | 0, t0: this.net.now() + 5000, hunters, res: null });
   }
   endMatch(w = 'none', id = '', why = '') { this.net.setMeta({ state: 'end', res: { w, id, why }, tEnd: this.net.now() }); }
   phase() {
@@ -185,12 +192,13 @@ export class Game {
   clearRound() {
     for (const p of this.projectiles) this.scene.remove(p.mesh); this.projectiles.length = 0;
     for (const l of this.loot) if (l.mesh) this.scene.remove(l.mesh); this.loot.length = 0; this.lootById = {};
-    this.zoneMesh.visible = false; this.zonePh = null;
+    this.zoneMesh.visible = false; this.zonePh = null; this.arena = null; this._setArena();
     if (this.myProp) { this.scene.remove(this.myProp); this.myProp = null; }
   }
   findClear(x, z, r = 0.45) { const ph = this.world.physics; for (let i = 0; i < 80; i++) { const a = i * 2.4, d = i * 0.22, px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d; if (ph.clear(px, 0, pz, r, 1.9)) return { x: px, z: pz }; } return { x, z }; }
-  pickSpawn(indoorBias) {
-    const rng = mulberry32(hashStr(this.net.uid + ':' + this.meta.seed)), list = this.world.spawns, ph = this.world.physics;
+  pickSpawn(indoorBias, salt = '') {
+    const A = this.arena, ph = this.world.physics, rng = mulberry32(hashStr(this.net.uid + ':' + this.meta.seed + salt));
+    const list = A ? this.world.spawns.filter((s) => s.x > A.r[0] + 1 && s.x < A.r[2] - 1 && s.z > A.r[1] + 1 && s.z < A.r[3] - 1) : this.world.spawns;
     for (let i = 0; i < 200; i++) { const s = list[(rng() * list.length) | 0]; if (indoorBias != null && (rng() < indoorBias) !== !!s.in) continue; if (ph.clear(s.x, 0, s.z, 0.46, 1.9)) return s; }
     return list[0];
   }
@@ -199,11 +207,12 @@ export class Game {
     this.clearRound(); this.roundId = m.round;
     Object.assign(me, this._blankMe(), keep);
     const hunters = (m.hunters || '').split(',').filter(Boolean);
+    this.arena = m.mode === 'hs' && m.area >= 0 && ARENAS[m.area] ? ARENAS[m.area] : null; this._setArena();
     let sp;
     if (late) { me.role = 'spec'; me.pub = 'spec'; sp = { x: 4, z: 52 }; me.y = 14; me.pitch = -0.4; }
     else if (m.mode === 'hs') {
-      if (hunters.includes(uid)) { me.role = me.pub = 'hunter'; const i = hunters.indexOf(uid); sp = this.findClear(this.world.teacherSpawn.x + (i % 2 ? 1.2 : -1.2) * Math.ceil(i / 2), this.world.teacherSpawn.z - (i > 2 ? 1.5 : 0)); me.yaw = Math.PI; }
-      else { me.role = me.pub = 'hider'; sp = this.pickSpawn(0.8); me.prop = MORPHS[hashStr(uid + m.seed) % MORPHS.length]; me.yaw = (hashStr(uid) % 628) / 100; }
+      if (hunters.includes(uid)) { me.role = me.pub = 'hunter'; const i = hunters.indexOf(uid); sp = this.arena ? this.pickSpawn(1, 'T') : this.findClear(this.world.teacherSpawn.x + (i % 2 ? 1.2 : -1.2) * Math.ceil(i / 2), this.world.teacherSpawn.z - (i > 2 ? 1.5 : 0)); me.yaw = Math.PI; }
+      else { me.role = me.pub = 'hider'; sp = this.pickSpawn(this.arena ? null : 0.8); me.prop = MORPHS[hashStr(uid + m.seed) % MORPHS.length]; me.yaw = (hashStr(uid) % 628) / 100; }
     } else { me.role = me.pub = 'br'; sp = this.pickSpawn(null); me.weapons = [{ id: 'paper', ammo: Infinity, res: 0 }]; me.yaw = (hashStr(uid) % 628) / 100; this.zonePh = this._buildZone(m.seed); this._genLoot(m.seed); this.zoneMesh.visible = true; }
     me.x = sp.x; me.z = sp.z; if (!late) me.y = 0; me.alive = !late; me.autoTaunt = AUTO_TAUNT * (0.5 + (hashStr(uid) % 100) / 100);
     this._setBody();
@@ -411,6 +420,7 @@ export class Game {
     if (!frozen && J.has('Space') && me.onGround) { me.vy = 7.2; me.onGround = false; this.sfx.play('jump', null, 0.6); }
     phys.move(me, dt);
     me.x = clamp(me.x, BOUNDS.x0 + 0.5, BOUNDS.x1 - 0.5); me.z = clamp(me.z, BOUNDS.z0 + 0.5, BOUNDS.z1 - 0.5);
+    if (this.arena) { const r = this.arena.r; me.x = clamp(me.x, r[0] + 0.45, r[2] - 0.45); me.z = clamp(me.z, r[1] + 0.45, r[3] - 0.45); }
     if (me.fell > 7) this.sfx.play('land', null, 0.7);
     const hs = Math.hypot(me.vx, me.vz);
     if (me.onGround && hs > 1) { me.stepAcc += hs * dt; if (me.stepAcc > (sprint ? 2.6 : 2.1)) { me.stepAcc = 0; if (!me.crouch) this.sfx.play(me.role === 'hider' ? 'slide' : 'step', null, me.role === 'hider' ? 0.35 : 0.5); } }
@@ -567,6 +577,16 @@ export class Game {
     }
     const l = Z[Z.length - 1]; return { ...l.to, next: null, dmg: l.dmg, closing: false, left: 0, i: Z.length };
   }
+  // translucent walls around the Hide & Seek play area
+  _setArena() {
+    if (this.arenaMesh) { this.scene.remove(this.arenaMesh); this.arenaMesh.traverse((o) => o.geometry && o.geometry.dispose()); this.arenaMesh = null; }
+    this.hud.arena = this.arena ? this.arena.r : null;
+    if (!this.arena) return;
+    const [x0, z0, x1, z1] = this.arena.r, g = new THREE.Group(), H = 9, mat = this.zoneMesh.material;
+    const wall = (len, x, z, ry) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(len, H), mat); m.position.set(x, H / 2, z); m.rotation.y = ry; m.renderOrder = 6; g.add(m); };
+    wall(x1 - x0, (x0 + x1) / 2, z0, 0); wall(x1 - x0, (x0 + x1) / 2, z1, 0); wall(z1 - z0, x0, (z0 + z1) / 2, Math.PI / 2); wall(z1 - z0, x1, (z0 + z1) / 2, Math.PI / 2);
+    this.scene.add(g); this.arenaMesh = g;
+  }
   _makeZone() {
     const mat = new THREE.ShaderMaterial({
       transparent: true, side: THREE.DoubleSide, depthWrite: false, uniforms: { time: { value: 0 } },
@@ -667,6 +687,7 @@ export class Game {
       for (const l of this.loot) if (!l.taken) { l.icon.rotation.y += dt * 1.6; l.icon.position.y = 0.62 + Math.sin(this.time * 2.2 + l.x) * 0.07; }
       const ph = this.phase();
       if (this.zonePh) { const z = this.zoneAt(Math.max(0, ph.t)); this.zoneMesh.position.set(z.x, 34, z.z); this.zoneMesh.scale.set(Math.max(0.5, z.r), 1, Math.max(0.5, z.r)); this.zoneMesh.material.uniforms.time.value = this.time; this._zone = z; } else this._zone = null;
+      if (this.arenaMesh) this.zoneMesh.material.uniforms.time.value = this.time;
       this.sendNet(dt); this.updateHud(ph);
       const f = this.fwd(); this.sfx.setListener(this.camera.position.x, this.camera.position.y, this.camera.position.z, f.x, f.z);
       this.sfx.ambience(!!this.world.campus.roomAt(me.x, me.z), true);
@@ -706,7 +727,7 @@ export class Game {
     const me = this.me, H = this.hud, m = this.meta, hs = m.mode === 'hs';
     const loc = this.world.campus.locName(me.x, me.z); H.set('loc-a', loc[0]); H.set('loc-b', loc[1]);
     // phase transitions + announcements
-    if (ph.p === 'count') { const n = Math.ceil(ph.left); if (n < this._countBeep && n > 0) { this._countBeep = n; this.sfx.play('beep'); H.banner(String(n), hs ? (me.role === 'hunter' ? 'You are the TEACHER' : 'You are a STUDENT — get ready to hide') : 'Last student standing wins', 900); } }
+    if (ph.p === 'count') { const n = Math.ceil(ph.left); if (n < this._countBeep && n > 0) { this._countBeep = n; this.sfx.play('beep'); H.banner(String(n), hs ? (me.role === 'hunter' ? 'You are the TEACHER' : 'You are a STUDENT — get ready to hide') + (this.arena ? ' · Play area: ' + this.arena.n : '') : 'Last student standing wins', 900); } }
     if (ph.p !== this._phaseWas) {
       const was = this._phaseWas; this._phaseWas = ph.p;
       if (ph.p === 'hide') { this.sfx.play('bell'); H.banner(me.role === 'hunter' ? 'GRADING PAPERS…' : 'HIDE!', me.role === 'hunter' ? 'Students are hiding' : 'Aim at an object and press E to disguise as it', 3600); }

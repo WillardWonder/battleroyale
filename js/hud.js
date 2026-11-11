@@ -62,6 +62,7 @@ export class Hud {
     g.beginPath(); g.moveTo(0, -8); g.lineTo(6, 7); g.lineTo(0, 3.5); g.lineTo(-6, 7); g.closePath(); g.fill(); g.stroke(); g.restore();
   }
   _overlay(g, S, dots, zone, px) {
+    if (this.arena) { const a = this.arena; g.lineWidth = 3 * px; g.strokeStyle = '#ff3b6b'; g.strokeRect((a[0] - OX) * S, (a[1] - OZ) * S, (a[2] - a[0]) * S, (a[3] - a[1]) * S); }
     if (zone) {
       g.lineWidth = 3 * px; g.strokeStyle = '#ff3b6b'; g.beginPath(); g.arc((zone.x - OX) * S, (zone.z - OZ) * S, Math.max(0.1, zone.r * S), 0, 7); g.stroke();
       if (zone.next) { g.setLineDash([6 * px, 6 * px]); g.strokeStyle = '#ffffff'; g.lineWidth = 2 * px; g.beginPath(); g.arc((zone.next.x - OX) * S, (zone.next.z - OZ) * S, Math.max(0.1, zone.next.r * S), 0, 7); g.stroke(); g.setLineDash([]); }

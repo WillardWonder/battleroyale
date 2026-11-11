@@ -144,6 +144,14 @@ const ZONES = [
   { name: 'W. Campus Drive', x0: -140, z0: 66, x1: 140, z1: 84 }, { name: 'Athletic Fields', x0: -50, z0: -116, x1: 60, z1: -86 },
   { name: 'Disc Golf Course', x0: 98, z0: -90, x1: 138, z1: -32 }, { name: 'College Drive', x0: 96, z0: -90, x1: 103, z1: 70 },
 ];
+// Hide & Seek play areas. tier: 0 small (up to 5 players), 1 medium (up to 12), 2 large (up to 24). r = [x0, z0, x1, z1].
+export const ARENAS = [
+  { n: 'Building A · iTEC', t: 0, r: [-104, 6, -56, 40] }, { n: 'Building C', t: 0, r: [-24, 6, 30, 40] }, { n: 'Building F', t: 0, r: [-56, -44, -20, 6] },
+  { n: 'Buildings D & E', t: 0, r: [30, 6, 96, 40] }, { n: 'Center for Health Sciences', t: 0, r: [-10, 88, 62, 114] },
+  { n: 'Buildings A, B & C', t: 1, r: [-104, 6, 30, 40] }, { n: 'Buildings D & E + Activity Center', t: 1, r: [30, -44, 96, 40] },
+  { n: 'Buildings H, I & G', t: 1, r: [-56, -80, 96, -44] }, { n: 'Building F + Courtyard', t: 1, r: [-56, -44, 62, 6] },
+  { n: 'Main Building', t: 2, r: [-104, -80, 96, 40] },
+];
 export const SPECIAL = {
   gazebo: { x: 4, z: -29 }, firepit: { x: 8, z: -8 }, sign: { x: 6, z: 62.5 }, net: { x: 45, z0: -40, z1: -28 },
   teacherRoom: 'A105 Faculty Office',

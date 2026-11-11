@@ -39,6 +39,7 @@ function syncOpts() {
 const SETTINGS = [
   ['hide', 'Hiding time', [[20, '20 seconds'], [35, '35 seconds'], [45, '45 seconds'], [60, '60 seconds']]],
   ['seek', 'Hunt time', [[120, '2 minutes'], [180, '3 minutes'], [240, '4 minutes'], [300, '5 minutes'], [420, '7 minutes']]],
+  ['area', 'Play area', [['auto', 'Auto (by player count)'], [0, 'Small — one building'], [1, 'Medium — a wing'], [2, 'Large — main building'], [3, 'Whole campus']]],
   ['hunterMode', 'Who is the teacher', [['host', 'The host'], ['random', 'Random player'], ['none', 'Nobody (practice hiding)']]],
   ['hunters', 'Hunters at start', [[1, '1'], [2, '2'], [3, '3']]],
   ['infect', 'Caught students', [[true, 'Become hall monitors'], [false, 'Spectate']]],
@@ -50,7 +51,7 @@ function renderLobby() {
   $('lobby-players').innerHTML = [...game.players].sort((a, b) => (a[1].j || 0) - (b[1].j || 0)).map(([u, p]) => `<div class="${u === net.uid ? 'me' : ''}"><span class="dot" style="background:${colorOf(u)}"></span>${esc(p.n || 'Student')}${m.host === u ? ' <span class="chip">HOST</span>' : ''}<span style="margin-left:auto" class="dim small">${p.sc ? p.sc + ' pts' : ''}</span></div>`).join('');
   for (const b of document.querySelectorAll('.mode')) { b.classList.toggle('on', b.dataset.mode === m.mode); b.disabled = !host; }
   const set = m.set || {};
-  $('lobby-settings').innerHTML = m.mode === 'hs' ? SETTINGS.map(([k, label, opts]) => `<label>${label}<select data-k="${k}" ${host ? '' : 'disabled'}>${opts.map(([v, t]) => `<option value="${v}" ${String(set[k]) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`).join('') : '';
+  $('lobby-settings').innerHTML = m.mode === 'hs' ? SETTINGS.map(([k, label, opts]) => `<label>${label}<select data-k="${k}" ${host ? '' : 'disabled'}>${opts.map(([v, t]) => `<option value="${v}" ${String(set[k] ?? (k === 'area' ? 'auto' : '')) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`).join('') : '';
   $('lobby-howto').innerHTML = m.mode === 'hs'
     ? `<b>STUDENTS</b> You spawn somewhere random on campus. Aim at any object and press <span class="key">E</span> to become it, then hold still — <span class="key">F</span> locks your rotation so you line up with the furniture. You squeak every so often, so pick your spot well.<br><b>TEACHER</b> Wait out the hiding time, then smack suspicious objects with the ruler <span class="key">LMB</span> or throw paper <span class="key">RMB</span>. Hitting ordinary furniture costs patience. <span class="key">Q</span> springs a pop quiz that makes nearby students squeak.`
     : `<b>BATTLE ROYALE</b> Everyone starts with paper balls. Pick up Rubber Band Blasters, Staple SMGs, Chalk Blasters, Dodgeball Launchers and Laser Pointers with <span class="key">E</span>. Energy Drinks heal, Hall Passes shield. The bell (red wall) closes in — being outside it marks you tardy and drains health. Last student standing makes the honor roll.`;
