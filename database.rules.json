@@ -1,0 +1,39 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$code": {
+        ".read": "auth != null",
+        "meta": {
+          ".write": "auth != null && (!data.exists() || data.child('host').val() === auth.uid || !root.child('rooms').child($code).child('players').child(data.child('host').val()).exists())",
+          ".validate": "newData.hasChildren(['host', 'mode', 'state'])"
+        },
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            "n": { ".validate": "newData.isString() && newData.val().length <= 24" }
+          }
+        },
+        "s": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.isString() && newData.val().length < 96"
+          }
+        },
+        "ev": {
+          ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid",
+          "$id": {
+            ".write": "auth != null && !data.exists() && newData.child('f').val() === auth.uid"
+          }
+        },
+        "loot": {
+          ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid",
+          "$id": {
+            ".write": "auth != null && !data.exists() && newData.val() === auth.uid"
+          }
+        }
+      }
+    }
+  }
+}

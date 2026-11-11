@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homework Hunt — NTC Wausau</title>
+<meta name="description" content="Hide & Seek and Battle Royale on the NTC Wausau campus.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230b4a8f'/><text x='50' y='70' font-size='62' text-anchor='middle'>🍎</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vignette"></div>
+
+<!-- ───────── HUD ───────── -->
+<div id="hud" class="hidden">
+  <div id="dmg"></div><div id="dmg-dir"></div><div id="ping-dir"></div>
+  <div id="crosshair"><i></i><i></i><i></i><i></i><b></b><div id="hitmarker"></div></div>
+  <div id="topbar"><div id="t-phase">GET READY</div><div id="t-time">0:00</div><div id="t-count"></div></div>
+  <div id="mapwrap"><canvas id="minimap" width="190" height="190"></canvas><div id="loc"><b id="loc-a"></b><span id="loc-b"></span></div></div>
+  <div id="feed"></div>
+  <div id="banner" class="banner"><div id="banner-t"></div><div id="banner-s"></div></div>
+  <div id="prompt" class="hidden"></div>
+  <div id="vitals">
+    <div id="role-chip">STUDENT</div>
+    <div class="barrow hidden" id="bar-b-wrap"><label>SHIELD</label><div class="bar shield" id="bar-b"><i></i></div><span id="bar-b-v">0</span></div>
+    <div class="barrow"><label id="bar-a-l">HEALTH</label><div class="bar" id="bar-a"><i></i></div><span id="bar-a-v">100</span></div>
+  </div>
+  <div id="abilities"></div>
+  <div id="weapon" class="hidden">
+    <div id="reloading" class="hidden">RELOADING…</div>
+    <div id="w-name">Paper Ball</div><div id="w-ammoline"><span id="w-ammo">∞</span> <small id="w-res"></small></div>
+    <div id="w-slots"></div>
+  </div>
+  <div id="outside" class="hidden">YOU ARE TARDY — GET INSIDE THE BELL</div>
+  <div id="stunned" class="hidden">☕ COFFEE BREAK</div>
+  <div id="spec" class="hidden">SPECTATING · WASD to fly · Space / Ctrl up & down · Shift faster</div>
+  <div id="blackout" class="hidden"><div><h2>GRADING PAPERS…</h2><p>Your students are hiding. Class resumes in</p><div id="blackout-n">30</div></div></div>
+  <div id="stamp"><div id="stamp-t">HOMEWORK ASSIGNED</div><div id="stamp-s"></div></div>
+  <div id="scoreboard" class="hidden panel"><h3 id="sb-title">SCOREBOARD</h3><table><thead><tr><th>Player</th><th>Role</th><th>Status</th><th class="num">Catches</th><th class="num">Score</th></tr></thead><tbody id="sb-rows"></tbody></table></div>
+  <div id="bigmap" class="hidden"><canvas id="bigmap-cv"></canvas><p>NTC WAUSAU CAMPUS · release M to close</p></div>
+  <div id="fps"></div>
+  <div id="hints">Tab scoreboard · M map · Esc menu</div>
+</div>
+
+<!-- ───────── Screens ───────── -->
+<div id="screens">
+  <section id="s-loading" class="screen show">
+    <div class="brand"><div class="kicker">NORTHCENTRAL TECHNICAL COLLEGE · WAUSAU</div><h1>HOMEWORK<span>HUNT</span></h1></div>
+    <div class="loader"><i id="load-bar"></i></div><p id="load-msg">Building the campus…</p>
+  </section>
+
+  <section id="s-auth" class="screen">
+    <div class="brand"><div class="kicker">NORTHCENTRAL TECHNICAL COLLEGE · WAUSAU</div><h1>HOMEWORK<span>HUNT</span></h1><p class="tag">The teacher wants your homework. Don’t get caught.</p></div>
+    <div class="panel narrow">
+      <button id="btn-google" class="btn wide google"><svg viewBox="0 0 48 48" width="20" height="20"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg> Continue with Google</button>
+      <div class="or"><span>or use email</span></div>
+      <form id="form-email">
+        <input id="in-name" class="hidden" type="text" maxlength="16" placeholder="Display name" autocomplete="nickname">
+        <input id="in-email" type="email" placeholder="Email" autocomplete="email" required>
+        <input id="in-pw" type="password" placeholder="Password (6+ characters)" autocomplete="current-password" required minlength="6">
+        <button class="btn wide primary" id="btn-email" type="submit">Sign in</button>
+      </form>
+      <p class="small center"><a href="#" id="lnk-toggle">New here? Create an account</a> · <a href="#" id="lnk-guest">Play as guest</a></p>
+      <p id="auth-err" class="err"></p>
+      <p class="small center dim"><a href="#" id="lnk-solo">Explore the campus solo (no sign-in)</a></p>
+    </div>
+  </section>
+
+  <section id="s-menu" class="screen">
+    <div class="brand"><div class="kicker">NORTHCENTRAL TECHNICAL COLLEGE · WAUSAU</div><h1>HOMEWORK<span>HUNT</span></h1></div>
+    <div class="panel narrow">
+      <label class="field">YOUR NAME<input id="in-callsign" type="text" maxlength="16" placeholder="Name shown to the class"></label>
+      <div class="row2">
+        <div class="card"><h3>JOIN A CLASS</h3><p class="small dim">Type the room code your teacher gave you.</p>
+          <div class="inline"><input id="in-code" type="text" maxlength="8" placeholder="CODE" autocomplete="off" spellcheck="false"><button id="btn-join" class="btn primary">Join</button></div></div>
+        <div class="card"><h3>HOST A CLASS</h3><p class="small dim">You become the host (and the teacher).</p>
+          <div class="inline"><input id="in-newcode" type="text" maxlength="8" placeholder="Code (optional)" autocomplete="off" spellcheck="false"><button id="btn-create" class="btn gold">Create</button></div></div>
+      </div>
+      <p id="menu-err" class="err"></p>
+      <div class="inline spread"><button id="btn-solo" class="btn ghost">Solo practice</button><button id="btn-settings" class="btn ghost">Settings</button><button id="btn-signout" class="btn ghost">Sign out</button></div>
+      <p class="small dim center" id="whoami"></p>
+    </div>
+  </section>
+
+  <section id="s-lobby" class="screen">
+    <div class="lobby">
+      <div class="panel">
+        <div class="kicker">ROOM CODE</div>
+        <div class="code" id="lobby-code">----</div>
+        <button id="btn-copy" class="btn ghost wide">Copy invite link</button>
+        <h3 class="mt">CLASS ROSTER <span id="lobby-count" class="chip"></span></h3>
+        <div id="lobby-players" class="roster"></div>
+        <button id="btn-leave" class="btn ghost wide mt">Leave room</button>
+      </div>
+      <div class="panel grow">
+        <div class="kicker">GAME MODE</div>
+        <div class="modes">
+          <button class="mode" data-mode="hs"><h2>HIDE &amp; SEEK</h2><p>Students disguise themselves as campus objects. The teacher hunts with a ruler and a stack of paper to hand out homework.</p></button>
+          <button class="mode" data-mode="br"><h2>BATTLE ROYALE</h2><p>Everyone drops in at a random spot. Grab school supplies, stay inside the bell, be the last student out of detention.</p></button>
+        </div>
+        <div id="lobby-settings" class="settings"></div>
+        <div class="howto" id="lobby-howto"></div>
+        <div class="inline spread mt"><span id="lobby-status" class="dim"></span><button id="btn-start" class="btn gold big">START ROUND</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="s-pause" class="screen dimmed">
+    <div class="panel narrow">
+      <h2 id="pause-title">PAUSED</h2>
+      <button id="btn-resume" class="btn gold wide big">CLICK TO PLAY</button>
+      <div class="opts">
+        <label>Mouse sensitivity <input id="opt-sens" type="range" min="0.2" max="3" step="0.05"><output id="out-sens"></output></label>
+        <label>Field of view <input id="opt-fov" type="range" min="60" max="100" step="1"><output id="out-fov"></output></label>
+        <label>Volume <input id="opt-vol" type="range" min="0" max="1" step="0.05"><output id="out-vol"></output></label>
+        <label>Graphics <select id="opt-q"><option value="0">Low (no shadows)</option><option value="1">Medium</option><option value="2">High</option></select></label>
+      </div>
+      <div class="controls small">
+        <b>Everyone</b> WASD move · Shift sprint · Space jump · Tab scoreboard · M map<br>
+        <b>Teacher</b> Left click ruler · Right click throw paper · Q pop quiz<br>
+        <b>Hiding</b> E disguise as what you’re aiming at · F lock rotation · Q taunt<br>
+        <b>Battle Royale</b> Click fire · Right click aim · R reload · 1-2-3 / wheel swap · E pick up · Ctrl crouch
+      </div>
+      <div class="inline spread"><button id="btn-endround" class="btn ghost hidden">End round (host)</button><button id="btn-quit" class="btn ghost">Leave match</button><button id="btn-closepause" class="btn ghost hidden">Back</button></div>
+    </div>
+  </section>
+
+  <section id="s-results" class="screen dimmed">
+    <div class="panel results">
+      <div class="kicker" id="res-kicker">ROUND OVER</div>
+      <h1 id="res-title">ROUND OVER</h1><p id="res-sub" class="tag"></p>
+      <table><thead><tr><th>Player</th><th>Role</th><th>Result</th><th class="num">Catches</th><th class="num">Score</th></tr></thead><tbody id="res-rows"></tbody></table>
+      <div class="inline spread mt"><span id="res-next" class="dim"></span><button id="btn-tolobby" class="btn gold hidden">Back to lobby</button></div>
+    </div>
+  </section>
+</div>
+<div id="toast"></div>
+<noscript>This game needs JavaScript.</noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
