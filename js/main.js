@@ -108,6 +108,7 @@ async function boot() {
         else if (!net || net !== localNet || !net.code) show('auth');
       });
       await fbNet.init();
+      setTimeout(() => { if (document.querySelector('#s-loading.show')) show('auth'); }, 4000); // never sit on the loading screen
     } catch (e) { console.error(e); show('auth'); $('auth-err').textContent = 'Could not load sign-in: ' + (e.message || e); }
   }
   bindUI();
