@@ -136,6 +136,7 @@ export class Game {
   }
   enterRoom() { this.meta = null; this.players.clear(); for (const r of this.remotes.values()) this._dropVis(r); this.remotes.clear(); this.me = this._blankMe(); this.roundId = -1; this.clearRound(); this.app = 'lobby'; }
   leaveRoom() { this.clearRound(); for (const r of this.remotes.values()) this._dropVis(r); this.remotes.clear(); this.players.clear(); this.meta = null; this.app = 'menu'; this.hudOn(false); if (document.exitPointerLock) document.exitPointerLock(); }
+  refreshVisuals() { for (const r of this.remotes.values()) { this._dropVis(r); this._syncVis(r); } if (this.me.role === 'hider' && this.me.alive && this.app === 'play') this._refreshVM(); }
   nameOf(u) { const p = this.players.get(u); return p ? p.n || 'Student' : 'Someone'; }
   isHost() { return this.meta && this.meta.host === this.net.uid; }
 

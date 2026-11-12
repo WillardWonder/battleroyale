@@ -46,7 +46,11 @@ export function makeWeapon(kind) {
 }
 
 /* Humanoid: stylised low-poly student / teacher with a procedural walk cycle. */
-export function makeHumanoid({ shirt = 0x1d78d6, seed = 1, teacher = false, monitor = false } = {}) {
+let characterFactory = null;
+export function setCharacterFactory(fn) { characterFactory = fn; }
+export function makeHumanoid(opts = {}) {
+  if (characterFactory) { const c = characterFactory(opts); if (c) return c; }
+  const { shirt = 0x1d78d6, seed = 1, teacher = false, monitor = false } = opts;
   const skin = SKIN[seed % SKIN.length], hair = HAIR[(seed >> 3) % HAIR.length], pants = teacher ? 0x9a8463 : [0x2b3a55, 0x30343b, 0x4a5568, 0x5b4636][(seed >> 5) % 4];
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const sh = teacher ? 0xf3f1ea : shirt;
