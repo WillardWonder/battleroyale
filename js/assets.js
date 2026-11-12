@@ -14,6 +14,7 @@ const PROP_MODELS = {
   bench: ['city', 'bench', 'box'], trash: ['city', 'trash_A', 'box'], recycle: ['city', 'trash_B', 'box'], dumpster: ['city', 'dumpster', 'box'], crate: ['city', 'box_A', 'box'],
   lamp: ['city', 'streetlight', 'h'], car: ['city', 'car_sedan', 'box'],
   roundtable: ['restaurant', 'table_round_A', 'box'], counter: ['restaurant', 'kitchencounter_straight_A_decorated', 'box'], barrel: ['proto', 'Barrel_A', 'box'],
+  vending: ['restaurant', 'fridge_A_decorated', 'box'], seat: ['restaurant', 'chair_B', 'box'],
 };
 const pixels = new Map();
 function imageData(img) {
@@ -55,13 +56,18 @@ function bake(scene, P, fit) {
   g.computeBoundingSphere(); g.computeBoundingBox(); return g;
 }
 
-const CHAR = {}, STUDENTS = ['Rogue', 'Knight', 'Rogue_Hooded'];
-function character({ seed = 0, teacher = false, monitor = false } = {}) {
+const CHAR = {}, STUDENTS = ['Rogue_Hooded', 'Rogue'], WHITE = new THREE.Color(0xffffff);
+function character({ seed = 0, teacher = false, monitor = false, shirt = 0xffffff } = {}) {
   const src = CHAR[teacher ? 'Mage' : STUDENTS[seed % STUDENTS.length]] || CHAR[STUDENTS[0]]; if (!src) return null;
   const obj = cloneSkinned(src.scene), g = new THREE.Group(), k = (teacher ? 1.95 : 1.75) / src.h;
   obj.scale.setScalar(k); g.add(obj);
   let handBone = null;
-  obj.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; } if (!handBone && /handslot.?r/i.test(o.name)) handBone = o; });
+  // no capes; students get their own hoodie colour so they match their name dot
+  const tint = new THREE.Color(shirt).lerp(WHITE, 0.55).multiplyScalar(1.25), mats = new Map();
+  obj.traverse((o) => {
+    if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; if (/cape/i.test(o.name)) o.visible = false; if (!teacher) { let m = mats.get(o.material); if (!m) { m = o.material.clone(); m.color.multiply(tint); mats.set(o.material, m); } o.material = m; } }
+    if (!handBone && /handslot.?r/i.test(o.name)) handBone = o;
+  });
   const hand = new THREE.Group(); hand.scale.setScalar(1 / k); (handBone || obj).add(hand);
   if (teacher || monitor) { const r = makeRuler(); r.rotation.x = -Math.PI / 2; hand.add(r); }
   const mixer = new THREE.AnimationMixer(obj), acts = {}; for (const clip of src.animations) acts[clip.name] = mixer.clipAction(clip);
@@ -116,7 +122,7 @@ export async function loadAssets(game) {
     T.leaf.computeBoundingSphere(); T.pine.computeBoundingSphere();
   } catch (e) { console.warn('tree models skipped', e); }
   world._sx = 1e9; game.refreshVisuals();
-  const chars = ['Rogue', 'Knight', 'Rogue_Hooded', 'Mage'].map(async (name) => {
+  const chars = ['Rogue', 'Rogue_Hooded', 'Mage'].map(async (name) => {
     try { const gltf = await load(`${BASE}characters/${name}.glb`), box = new THREE.Box3().setFromObject(gltf.scene); CHAR[name] = { scene: gltf.scene, animations: gltf.animations, h: Math.max(0.5, box.max.y - box.min.y) }; }
     catch (e) { console.warn('character skipped', name, e); }
   });
