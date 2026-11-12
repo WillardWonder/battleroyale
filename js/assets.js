@@ -13,6 +13,7 @@ const PROP_MODELS = {
   bookshelf: ['furniture', 'shelf_B_large_decorated', 'box'], cabinet: ['furniture', 'cabinet_medium', 'box'], plant: ['furniture', 'cactus_medium_A', 'h'], books: ['furniture', 'book_set', 'box'],
   bench: ['city', 'bench', 'box'], trash: ['city', 'trash_A', 'box'], recycle: ['city', 'trash_B', 'box'], dumpster: ['city', 'dumpster', 'box'], crate: ['city', 'box_A', 'box'],
   lamp: ['city', 'streetlight', 'h'], car: ['city', 'car_sedan', 'box'],
+  roundtable: ['restaurant', 'table_round_A', 'box'], counter: ['restaurant', 'kitchencounter_straight_A_decorated', 'box'], barrel: ['proto', 'Barrel_A', 'box'],
 };
 const pixels = new Map();
 function imageData(img) {
@@ -91,7 +92,30 @@ export async function loadAssets(game) {
       }
     } catch (e) { console.warn('prop model skipped', type, e); }
   });
-  await Promise.all(props); world._sx = 1e9; game.refreshVisuals();
+  await Promise.all(props);
+  // four car models instead of one: split the parked cars across them
+  try {
+    const base = world.propMesh.car, P = PROPS.car, m4 = new THREE.Matrix4();
+    if (base) {
+      const names = ['car_sedan', 'car_hatchback', 'car_stationwagon', 'car_taxi'], geos = await Promise.all(names.map(async (n) => bake((await load(`${BASE}city/${n}.gltf`)).scene, P, 'box')));
+      const groups = names.map(() => []); for (let i = 0; i < base.count; i++) groups[(i * 7 + (i >> 2)) % (i % 9 === 0 ? 4 : 3)].push(i);
+      groups.forEach((idx, g) => {
+        const im = new THREE.InstancedMesh(geos[g], world.mat.prop, idx.length); im.castShadow = im.receiveShadow = true;
+        idx.forEach((src, k) => { base.getMatrixAt(src, m4); im.setMatrixAt(k, m4); im.setColorAt(k, col.set(0xffffff).lerp(new THREE.Color(TINT[src % TINT.length]), g === 3 ? 0 : 0.3).multiplyScalar(1.5)); });
+        im.computeBoundingSphere(); world.group.add(im);
+      });
+      base.visible = false; world.propGeo.car = geos[0];
+    }
+  } catch (e) { console.warn('car variety skipped', e); }
+  // real tree models
+  try {
+    const T = world.treeMesh, A = bake((await load(`${BASE}nature/tree_single_A.gltf`)).scene, { w: 1, h: 6.4, d: 1 }, 'h'), B = bake((await load(`${BASE}nature/tree_single_B.gltf`)).scene, { w: 1, h: 7.2, d: 1 }, 'h');
+    T.trunk.visible = false; T.leaf.geometry = A; T.pine.geometry = B;
+    const AUT = [0xffb060, 0xffd070, 0xff8a5a, 0xf2c060, 0xd8e08a, 0xffe08a];
+    for (let i = 0; i < T.leaf.count; i++) T.leaf.setColorAt(i, col.set(AUT[i % AUT.length]).multiplyScalar(1.35)); T.leaf.instanceColor.needsUpdate = true;
+    T.leaf.computeBoundingSphere(); T.pine.computeBoundingSphere();
+  } catch (e) { console.warn('tree models skipped', e); }
+  world._sx = 1e9; game.refreshVisuals();
   const chars = ['Rogue', 'Knight', 'Rogue_Hooded', 'Mage'].map(async (name) => {
     try { const gltf = await load(`${BASE}characters/${name}.glb`), box = new THREE.Box3().setFromObject(gltf.scene); CHAR[name] = { scene: gltf.scene, animations: gltf.animations, h: Math.max(0.5, box.max.y - box.min.y) }; }
     catch (e) { console.warn('character skipped', name, e); }

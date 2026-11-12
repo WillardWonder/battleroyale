@@ -441,7 +441,7 @@ export class World {
       list.forEach((t, i) => { q.setFromAxisAngle(up, t.a); p.set(t.x, 0, t.z); s.setScalar(t.s); m.compose(p, q, s); im.setMatrixAt(i, m); if (tint) im.setColorAt(i, col.set(TREE_COLORS[t.c]).multiplyScalar(0.85 + (i % 5) * 0.05)); });
       im.computeBoundingSphere(); this.group.add(im); return im;
     };
-    mk(trunk.build(), this.mat.prop, hard); mk(leaf.build(), this.mat.leaf, hard, true); mk(pine.build(), this.mat.leaf, pines);
+    this.treeMesh = { trunk: mk(trunk.build(), this.mat.prop, hard), leaf: mk(leaf.build(), this.mat.leaf, hard, true), pine: mk(pine.build(), this.mat.leaf, pines) };
     for (const t of trees) ph.add(t.x - 0.25, 0, t.z - 0.25, t.x + 0.25, 6, t.z + 0.25);
 
     // gazebo
