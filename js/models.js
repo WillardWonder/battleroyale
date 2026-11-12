@@ -1,23 +1,6 @@
 // Characters, held items, first-person view models and name tags — all procedural, no asset downloads.
 import * as THREE from '../vendor/three.js';
 import { MB } from './world.js';
-import { GLTFLoader } from '../vendor/gltf.js';
-
-// Blaster models: Kenney "Starter Kit FPS" (MIT) — see assets/models/LICENSE-Kenney.md
-const GLB = {};
-export function preloadModels() {
-  const L = new GLTFLoader();
-  for (const [k, f] of [['blaster', 'blaster.glb'], ['repeater', 'blaster-repeater.glb']]) L.load('assets/models/' + f, (g) => { GLB[k] = g.scene; }, undefined, (e) => console.warn('model failed', f, e));
-}
-// weapon → [model, length in metres, tint]
-const WMODEL = { rubber: ['blaster', 0.36, 0xffe9a8], laser: ['blaster', 0.52, 0xff9a9a], stapler: ['repeater', 0.46, 0xffffff], chalk: ['repeater', 0.54, 0xb6f0c0], dodge: ['repeater', 0.66, 0x9fd0ff] };
-function modelWeapon(kind) {
-  const def = WMODEL[kind]; if (!def || !GLB[def[0]]) return null;
-  const src = GLB[def[0]].clone(true), box = new THREE.Box3().setFromObject(src), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3()), k = def[1] / size.z;
-  src.traverse((o) => { if (o.isMesh) { o.material = o.material.clone(); o.material.color.multiply(new THREE.Color(def[2])); o.frustumCulled = false; } });
-  src.position.set(-c.x * k, -box.min.y * k - size.y * k * 0.55, -c.z * k); src.scale.setScalar(k);
-  const g = new THREE.Group(), flip = new THREE.Group(); flip.rotation.y = Math.PI; flip.add(src); g.add(flip); return g;
-}
 
 const charMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 const m4 = new THREE.Matrix4();
@@ -40,18 +23,26 @@ export function makePaperBall(r = 0.07) {
   return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xf7f5ee, roughness: 0.95, flatShading: true }));
 }
 
-// toy weapons for Battle Royale (also used as first-person view models)
+// Battle Royale items are ordinary school supplies — nothing gun-shaped.
 export function makeWeapon(kind) {
-  const real = modelWeapon(kind); if (real) return real;
-  const mb = new MB(), C = (h) => { const c = new THREE.Color(h); return [c.r, c.g, c.b]; };
-  const b = (w, h, d, x, y, z, col) => mb.box(x - w / 2, y - h / 2, z - d / 2, x + w / 2, y + h / 2, z + d / 2, 1, C(col), 63);
-  if (kind === 'rubber') { b(0.05, 0.06, 0.34, 0, 0.03, -0.12, 0xffd23f); b(0.045, 0.14, 0.06, 0, -0.06, 0.02, 0xe63946); b(0.02, 0.02, 0.3, 0, 0.07, -0.12, 0xb07a3a); b(0.06, 0.03, 0.03, 0, 0.075, 0.03, 0x1d78d6); }
-  else if (kind === 'stapler') { b(0.06, 0.05, 0.36, 0, 0.0, -0.1, 0x23272e); b(0.06, 0.05, 0.34, 0, 0.065, -0.11, 0xe63946); b(0.05, 0.16, 0.06, 0, -0.1, 0.04, 0x23272e); b(0.05, 0.14, 0.05, 0, -0.1, -0.12, 0x8a9099); b(0.03, 0.03, 0.1, 0, 0.0, -0.32, 0x8a9099); }
-  else if (kind === 'chalk') { b(0.09, 0.09, 0.42, 0, 0.02, -0.14, 0x3c6e47); b(0.11, 0.11, 0.08, 0, 0.02, -0.36, 0xf5f5f2); b(0.05, 0.15, 0.06, 0, -0.09, 0.03, 0x7a5532); b(0.07, 0.06, 0.2, 0, -0.05, -0.16, 0x7a5532); }
-  else if (kind === 'dodge') { b(0.14, 0.14, 0.5, 0, 0.03, -0.16, 0x1d78d6); b(0.17, 0.17, 0.08, 0, 0.03, -0.42, 0xffd23f); b(0.05, 0.16, 0.06, 0, -0.11, 0.05, 0x23272e); b(0.05, 0.12, 0.05, 0, -0.1, -0.2, 0x23272e); b(0.1, 0.1, 0.1, 0, 0.16, -0.02, 0xe63946); }
-  else if (kind === 'laser') { b(0.035, 0.035, 0.62, 0, 0.03, -0.2, 0x8a9099); b(0.05, 0.05, 0.16, 0, 0.03, 0.06, 0x23272e); b(0.04, 0.13, 0.05, 0, -0.06, 0.06, 0x23272e); b(0.045, 0.045, 0.2, 0, 0.09, -0.1, 0x23272e); b(0.03, 0.03, 0.03, 0, 0.03, -0.52, 0xff2d2d); }
-  else { b(0.07, 0.07, 0.07, 0, 0, 0, 0xf7f5ee); }
-  const m = new THREE.Mesh(mb.build(), charMat); return m;
+  const mb = new MB(), M = (x, y, z, rx = 0, ry = 0, rz = 0) => new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx, ry, rz)).setPosition(x, y, z);
+  const box = (w, h, d, m, c) => mb.geom(new THREE.BoxGeometry(w, h, d), m, c);
+  if (kind === 'rubber') { // a handful of rubber bands
+    for (const [r, x, y, rz, c] of [[0.05, 0, 0, 0.2, 0xc9a26a], [0.042, 0.012, 0.01, -0.5, 0xd8473a], [0.046, -0.01, 0.006, 0.9, 0x3a7bd8]]) mb.geom(new THREE.TorusGeometry(r, 0.006, 6, 20), M(x, y, 0, 0.3, 0, rz), c);
+  } else if (kind === 'stapler') { // desk stapler
+    box(0.05, 0.014, 0.2, M(0, -0.03, -0.02), 0x2a2d33); box(0.046, 0.03, 0.19, M(0, 0.012, -0.03, 0.14), 0xd62f2f);
+    mb.geom(new THREE.CylinderGeometry(0.024, 0.024, 0.048, 12), M(0, 0.03, -0.12, 0, 0, Math.PI / 2), 0xd62f2f); box(0.04, 0.012, 0.16, M(0, -0.012, -0.03, 0.07), 0x9aa0a8);
+    mb.geom(new THREE.CylinderGeometry(0.012, 0.012, 0.052, 8), M(0, -0.012, 0.075, 0, 0, Math.PI / 2), 0x2a2d33);
+  } else if (kind === 'chalk') { // chalkboard eraser + stick of chalk
+    box(0.07, 0.022, 0.16, M(0, 0.014, -0.02), 0x9a6a3c); box(0.066, 0.03, 0.156, M(0, -0.012, -0.02), 0x23252a); box(0.06, 0.004, 0.15, M(0, -0.029, -0.02), 0xf2f2ee);
+    mb.geom(new THREE.CylinderGeometry(0.008, 0.008, 0.09, 8), M(0.05, 0.03, -0.02, Math.PI / 2, 0, 0.3), 0xffffff);
+  } else if (kind === 'dodge') { // dodgeball
+    mb.geom(new THREE.IcosahedronGeometry(0.11, 2), M(0, 0, -0.02), 0xd62828); mb.geom(new THREE.TorusGeometry(0.111, 0.004, 5, 28), M(0, 0, -0.02, 0.5, 0.4), 0x9c1c1c);
+  } else if (kind === 'laser') { // pen-style laser pointer
+    mb.geom(new THREE.CylinderGeometry(0.009, 0.009, 0.15, 10), M(0, 0, -0.03, Math.PI / 2), 0xb9bec6); mb.geom(new THREE.CylinderGeometry(0.0095, 0.0095, 0.03, 10), M(0, 0, 0.035, Math.PI / 2), 0x23272e);
+    mb.geom(new THREE.CylinderGeometry(0.006, 0.009, 0.014, 10), M(0, 0, -0.112, Math.PI / 2), 0xff2d2d); box(0.004, 0.006, 0.05, M(0, 0.011, 0.01), 0x23272e);
+  } else mb.geom(new THREE.IcosahedronGeometry(0.06, 1), M(0, 0, 0), 0xf7f5ee);
+  return new THREE.Mesh(mb.build(), charMat);
 }
 
 /* Humanoid: stylised low-poly student / teacher with a procedural walk cycle. */
@@ -129,6 +120,7 @@ export function makeViewModel() {
   };
   const R = new THREE.Group(), L = new THREE.Group(); root.add(R, L);
   let armR = mkArm(0x2f5c8c, -1), armL = mkArm(0x2f5c8c, 1); R.add(armR); L.add(armL);
+  armR.visible = armL.visible = false; // no first-person arms — just the item in view
   const ruler = makeRuler(); ruler.position.set(0, -0.02, -0.02); ruler.rotation.set(-1.05, 0, 0.12); R.add(ruler);
   const paper = makePaperBall(0.05); paper.position.set(0, 0.05, -0.03); L.add(paper);
   let gun = null, kindNow = '', t = 0, swingT = 0, throwT = 0, kick = 0, bob = 0, hidden = false;
@@ -141,7 +133,7 @@ export function makeViewModel() {
       ruler.visible = mode === 'hunter'; paper.visible = mode === 'hunter' || (mode === 'br' && weapon === 'paper');
       L.visible = mode === 'hunter' || (mode === 'br' && weapon === 'paper');
       if (gun) { R.remove(gun); gun = null; }
-      if (mode === 'br' && weapon !== 'paper') { gun = makeWeapon(weapon); gun.position.set(0, 0.075, -0.1); gun.traverse((o) => { o.frustumCulled = false; }); R.add(gun); }
+      if (mode === 'br' && weapon !== 'paper') { gun = makeWeapon(weapon); gun.position.set(-0.02, 0.05, -0.02); gun.scale.setScalar(1.5); gun.frustumCulled = false; R.add(gun); }
       kindNow = mode + weapon;
     },
     key: () => kindNow,

@@ -16,7 +16,7 @@ No build step. Plain ES modules, Three.js and the Firebase SDK are vendored in `
 2. **Publish the rules.** Realtime Database → **Rules** tab → replace everything with the contents of [`database.rules.json`](database.rules.json) → Publish.
 3. **Turn on GitHub Pages.** Repo → Settings → Pages → Deploy from a branch → `main` / root.
 
-Optional: Authentication → Sign-in method → enable **Anonymous** so students can use "Play as guest" with no account.
+Guest play: Authentication → Sign-in method → **Anonymous** is enabled, so students go straight to the menu with no account.
 
 ## Running a class
 

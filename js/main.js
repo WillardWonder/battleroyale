@@ -4,7 +4,6 @@ import { Sfx } from './audio.js';
 import { FirebaseNet, LocalNet, randomCode, authMessage } from './net.js';
 import { DEFAULT_SETTINGS } from './config.js';
 import { esc } from './util.js';
-import { preloadModels } from './models.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -55,7 +54,7 @@ function renderLobby() {
   $('lobby-settings').innerHTML = m.mode === 'hs' ? SETTINGS.map(([k, label, opts]) => `<label>${label}<select data-k="${k}" ${host ? '' : 'disabled'}>${opts.map(([v, t]) => `<option value="${v}" ${String(set[k] ?? (k === 'area' ? 'auto' : '')) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`).join('') : '';
   $('lobby-howto').innerHTML = m.mode === 'hs'
     ? `<b>STUDENTS</b> You spawn somewhere random on campus. Aim at any object and press <span class="key">E</span> to become it, then hold still — <span class="key">F</span> locks your rotation so you line up with the furniture. You squeak every so often, so pick your spot well.<br><b>TEACHER</b> Wait out the hiding time, then smack suspicious objects with the ruler <span class="key">LMB</span> or throw paper <span class="key">RMB</span>. Hitting ordinary furniture costs patience. <span class="key">Q</span> springs a pop quiz that makes nearby students squeak.`
-    : `<b>BATTLE ROYALE</b> Everyone starts with paper balls. Pick up Rubber Band Blasters, Staple SMGs, Chalk Blasters, Dodgeball Launchers and Laser Pointers with <span class="key">E</span>. Energy Drinks heal, Hall Passes shield. The bell (red wall) closes in — being outside it marks you tardy and drains health. Last student standing makes the honor roll.`;
+    : `<b>BATTLE ROYALE</b> Everyone starts with paper balls. Pick up rubber bands, staplers, chalk erasers, dodgeballs and laser pointers with <span class="key">E</span>. Energy Drinks heal, Hall Passes shield. The bell (red wall) closes in — being outside it marks you tardy and drains health. Last student standing makes the honor roll.`;
   $('btn-start').classList.toggle('hidden', !host);
   const playing = m.state === 'play' || m.state === 'end';
   $('btn-start').disabled = playing;
@@ -95,7 +94,7 @@ async function boot() {
   $('in-callsign').value = localStorage.getItem('hh-name') || '';
   await nextFrame();
   try { game = new Game($('c'), sfx, ui); } catch (e) { console.error(e); $('load-msg').textContent = 'This device could not start WebGL: ' + (e.message || e); return; }
-  game.testMode = TEST; window.__game = game; preloadModels();
+  game.testMode = TEST; window.__game = game;
   $('load-bar').style.width = '70%'; $('load-msg').textContent = 'Connecting…'; await nextFrame();
   localNet = new LocalNet(); game.attach(localNet);
   if (params.has('local')) {
@@ -106,7 +105,8 @@ async function boot() {
     try {
       fbNet.on('auth', (u) => {
         signedIn = !!u;
-        if (u) { if (!$('in-callsign').value) $('in-callsign').value = (fbNet.name || '').slice(0, 16); $('whoami').textContent = fbNet.isAnon ? 'Signed in as a guest' : 'Signed in as ' + (u.email || fbNet.name); if (!game.net || !game.net.code) { show('menu'); const r = params.get('room'); if (r && !boot.autoJoined) { boot.autoJoined = true; $('in-code').value = r.toUpperCase(); join(fbNet, r, false); } } }
+        if (u) { if (!$('in-callsign').value) $('in-callsign').value = (fbNet.name || '').slice(0, 16); $('btn-signout').textContent = fbNet.isAnon ? 'Sign in' : 'Sign out'; $('whoami').textContent = fbNet.isAnon ? 'Playing as a guest — no account needed' : 'Signed in as ' + (u.email || fbNet.name); if (!game.net || !game.net.code) { show('menu'); const r = params.get('room'); if (r && !boot.autoJoined) { boot.autoJoined = true; $('in-code').value = r.toUpperCase(); join(fbNet, r, false); } } }
+        else if (!boot.triedGuest) { boot.triedGuest = true; fbNet.signInGuest().catch((e) => { console.warn(e); show('auth'); $('auth-err').textContent = authMessage(e); }); } // play straight away as a guest
         else if (!net || net !== localNet || !net.code) show('auth');
       });
       await fbNet.init();

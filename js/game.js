@@ -175,7 +175,7 @@ export class Game {
     // Hide & Seek play area scales with the number of players
     let area = -1;
     if (m.mode === 'hs') {
-      const pref = m.set.area || 'auto', n = ids.length, tier = pref === 'auto' ? (n <= 5 ? 0 : n <= 12 ? 1 : n <= 24 ? 2 : 3) : +pref;
+      const pref = m.set.area || 'auto', n = ids.length, tier = pref === 'auto' ? (n <= 5 ? 0 : n <= 12 ? 1 : 2) : +pref;
       const opts = ARENAS.map((a, i) => (a.t === tier ? i : -1)).filter((i) => i >= 0);
       if (opts.length) area = opts[(Math.random() * opts.length) | 0];
     }
@@ -601,7 +601,7 @@ export class Game {
       let s = sp[(rng() * sp.length) | 0]; if (!s.in && rng() < 0.55) s = sp[(rng() * sp.length) | 0];
       let k = rng() * total, type = LOOT_TABLE[0][0]; for (const [t, w] of LOOT_TABLE) { if ((k -= w) <= 0) { type = t; break; } }
       const W = WEAPONS[type], info = W || LOOT_INFO[type], g = new THREE.Group();
-      let icon; if (W) { icon = makeWeapon(type); icon.scale.setScalar(1.7); } else icon = new THREE.Mesh(type === 'drink' ? new THREE.CylinderGeometry(0.09, 0.09, 0.3, 10) : type === 'pass' ? new THREE.BoxGeometry(0.3, 0.2, 0.03) : new THREE.BoxGeometry(0.3, 0.22, 0.3), new THREE.MeshStandardMaterial({ color: info.color, roughness: 0.4, emissive: info.color, emissiveIntensity: 0.25 }));
+      let icon; if (W) { icon = makeWeapon(type); icon.scale.setScalar(2.6); } else icon = new THREE.Mesh(type === 'drink' ? new THREE.CylinderGeometry(0.09, 0.09, 0.3, 10) : type === 'pass' ? new THREE.BoxGeometry(0.3, 0.2, 0.03) : new THREE.BoxGeometry(0.3, 0.22, 0.3), new THREE.MeshStandardMaterial({ color: info.color, roughness: 0.4, emissive: info.color, emissiveIntensity: 0.25 }));
       icon.position.y = 0.6; g.add(icon);
       const ring = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.38, 20), new THREE.MeshBasicMaterial({ color: info.color, transparent: true, opacity: 0.8, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; g.add(ring);
       g.position.set(s.x, 0, s.z); this.scene.add(g);
