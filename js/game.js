@@ -180,8 +180,10 @@ export class Game {
       const opts = ARENAS.map((a, i) => (a.t === tier ? i : -1)).filter((i) => i >= 0);
       if (opts.length) area = opts[(Math.random() * opts.length) | 0];
     }
+    // Battle Royale: starting circle and number of supplies scale with the number of players
+    const n = ids.length, br = { zr: clamp(60 + n * 7, 75, 230), zx: Math.round((Math.random() - 0.5) * 160), zz: Math.round((Math.random() - 0.5) * 120), lootN: clamp(34 + n * 14, 50, 260) };
     this.net.resetRound();
-    this.net.setMeta({ area, state: 'play', round: (m.round || 0) + 1, seed: (Math.random() * 2147483647) | 0, t0: this.net.now() + 5000, hunters, res: null });
+    this.net.setMeta({ ...br, area, state: 'play', round: (m.round || 0) + 1, seed: (Math.random() * 2147483647) | 0, t0: this.net.now() + 5000, hunters, res: null });
   }
   endMatch(w = 'none', id = '', why = '') { this.net.setMeta({ state: 'end', res: { w, id, why }, tEnd: this.net.now() }); }
   phase() {
@@ -193,13 +195,15 @@ export class Game {
   clearRound() {
     for (const p of this.projectiles) this.scene.remove(p.mesh); this.projectiles.length = 0;
     for (const l of this.loot) if (l.mesh) this.scene.remove(l.mesh); this.loot.length = 0; this.lootById = {};
-    this.zoneMesh.visible = false; this.zonePh = null; this.arena = null; this._setArena();
+    this.zoneMesh.visible = false; this.zonePh = null; this.brArea = null; this.arena = null; this._setArena();
     if (this.myProp) { this.scene.remove(this.myProp); this.myProp = null; }
   }
   findClear(x, z, r = 0.45) { const ph = this.world.physics; for (let i = 0; i < 80; i++) { const a = i * 2.4, d = i * 0.22, px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d; if (ph.clear(px, 0, pz, r, 1.9)) return { x: px, z: pz }; } return { x, z }; }
   pickSpawn(indoorBias, salt = '') {
     const A = this.arena, ph = this.world.physics, rng = mulberry32(hashStr(this.net.uid + ':' + this.meta.seed + salt));
-    const list = A ? this.world.spawns.filter((s) => s.x > A.r[0] + 1 && s.x < A.r[2] - 1 && s.z > A.r[1] + 1 && s.z < A.r[3] - 1) : this.world.spawns;
+    const C = this.brArea;
+    let list = A ? this.world.spawns.filter((s) => s.x > A.r[0] + 1 && s.x < A.r[2] - 1 && s.z > A.r[1] + 1 && s.z < A.r[3] - 1) : C ? this.world.spawns.filter((s) => Math.hypot(s.x - C.x, s.z - C.z) < C.r * 0.9) : this.world.spawns;
+    if (list.length < 5) list = this.world.spawns;
     for (let i = 0; i < 200; i++) { const s = list[(rng() * list.length) | 0]; if (indoorBias != null && (rng() < indoorBias) !== !!s.in) continue; if (ph.clear(s.x, 0, s.z, 0.46, 1.9)) return s; }
     return list[0];
   }
@@ -214,7 +218,7 @@ export class Game {
     else if (m.mode === 'hs') {
       if (hunters.includes(uid)) { me.role = me.pub = 'hunter'; const i = hunters.indexOf(uid); sp = this.arena ? this.pickSpawn(1, 'T') : this.findClear(this.world.teacherSpawn.x + (i % 2 ? 1.2 : -1.2) * Math.ceil(i / 2), this.world.teacherSpawn.z - (i > 2 ? 1.5 : 0)); me.yaw = Math.PI; }
       else { me.role = me.pub = 'hider'; sp = this.pickSpawn(this.arena ? null : 0.8); me.prop = MORPHS[hashStr(uid + m.seed) % MORPHS.length]; me.yaw = (hashStr(uid) % 628) / 100; }
-    } else { me.role = me.pub = 'br'; sp = this.pickSpawn(null); me.weapons = [{ id: 'paper', ammo: Infinity, res: 0 }]; me.yaw = (hashStr(uid) % 628) / 100; this.zonePh = this._buildZone(m.seed); this._genLoot(m.seed); this.zoneMesh.visible = true; }
+    } else { me.role = me.pub = 'br'; this.brArea = { x: m.zx || 0, z: m.zz || 0, r: m.zr || ZONE_START_R }; sp = this.pickSpawn(null); me.weapons = [{ id: 'paper', ammo: Infinity, res: 0 }]; me.yaw = (hashStr(uid) % 628) / 100; this.zonePh = this._buildZone(m.seed); this._genLoot(m.seed); this.zoneMesh.visible = true; }
     me.x = sp.x; me.z = sp.z; if (!late) me.y = 0; me.alive = !late; me.autoTaunt = AUTO_TAUNT * (0.5 + (hashStr(uid) % 100) / 100);
     this._setBody();
     this.net.setPlayer({ role: me.pub, sub: '', alive: me.alive, hp: 100, sh: 0, prop: me.role === 'hider' ? me.prop : '', k: 0, rd: m.round, w: 'paper', pl: 0, sc: me.sc || 0 });
@@ -515,10 +519,11 @@ export class Game {
     this.me.shot = (this.me.shot + 1) & 7;
   }
   spawnProjectile(kind, x, y, z, dx, dy, dz, mine) {
-    const dodge = kind === 'dodge', W = dodge ? WEAPONS.dodge : WEAPONS.paper, speed = kind === 'paperT' ? 31 : W.speed;
-    const mesh = dodge ? new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 2), new THREE.MeshStandardMaterial({ color: 0xd62828, roughness: 0.6 })) : makePaperBall(0.075);
+    const dodge = kind === 'dodge', W = WEAPONS[kind] || WEAPONS.paper, speed = kind === 'paperT' ? 31 : W.speed;
+    const mesh = dodge ? new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 2), new THREE.MeshStandardMaterial({ color: 0xd62828, roughness: 0.6 })) : kind === 'eraser' || kind === 'book' ? makeWeapon(kind) : makePaperBall(0.075);
+    if (kind === 'eraser' || kind === 'book') mesh.scale.setScalar(1.6);
     mesh.position.set(x, y, z); this.scene.add(mesh);
-    this.projectiles.push({ kind, x, y, z, vx: dx * speed, vy: dy * speed, vz: dz * speed, g: dodge ? W.grav : 9, life: 3.5, mine, mesh });
+    this.projectiles.push({ kind, x, y, z, vx: dx * speed, vy: dy * speed, vz: dz * speed, g: kind === 'paperT' ? 9 : W.grav, life: 3.5, mine, mesh });
     if (!mine) this.sfx.play(dodge ? 'dodge' : 'throw', { x, y, z }, 0.9);
   }
   updateProjectiles(dt) {
@@ -546,10 +551,9 @@ export class Game {
     if (p.kind === 'paperT') {
       if (target) this.hitPlayer(target.r, 34, 'paper', x, y, z);
       else if (world && world.box && world.box.tag) this.wrongGuess(world.box.tag, 4, x, y, z);
-    } else if (p.kind === 'paper') { if (target) this.hitPlayer(target.r, WEAPONS.paper.dmg, 'paper', x, y, z); }
-    else {
-      const W = WEAPONS.dodge; if (target) this.hitPlayer(target.r, W.dmg, 'dodge', x, y, z);
-      for (const t of this.targets('br')) { if (target && t.r === target.r) continue; const d = Math.hypot(t.r.x - x, t.r.y + 0.9 - y, t.r.z - z); if (d < W.splash) this.hitPlayer(t.r, W.splashDmg * (1 - 0.5 * d / W.splash), 'dodge', t.r.x, t.r.y + 1, t.r.z); }
+    } else {
+      const W = WEAPONS[p.kind] || WEAPONS.paper; if (target) this.hitPlayer(target.r, W.dmg, p.kind, x, y, z);
+      if (W.splash) for (const t of this.targets('br')) { if (target && t.r === target.r) continue; const d = Math.hypot(t.r.x - x, t.r.y + 0.9 - y, t.r.z - z); if (d < W.splash) this.hitPlayer(t.r, W.splashDmg * (1 - 0.5 * d / W.splash), 'dodge', t.r.x, t.r.y + 1, t.r.z); }
     }
   }
   tracer(x0, y0, z0, x1, y1, z1, hex, life = 0.07) {
@@ -561,8 +565,9 @@ export class Game {
 
   /* ───────── Battle Royale ───────── */
   _buildZone(seed) {
-    const rng = mulberry32(seed ^ 0x9e3779b9), out = []; let cur = { x: 0, z: -4, r: ZONE_START_R }, t = 0;
-    for (const [wait, shrink, r, dmg] of ZONE_PHASES) {
+    const rng = mulberry32(seed ^ 0x9e3779b9), out = [], B = this.brArea || { x: 0, z: -4, r: ZONE_START_R }; let cur = { x: B.x, z: B.z, r: B.r }, t = 0;
+    for (const [wait, shrink, r0, dmg] of ZONE_PHASES) {
+      const r = r0 * B.r / ZONE_START_R;
       const off = Math.max(0, cur.r - r) * 0.8, a = rng() * TAU, d = Math.sqrt(rng()) * off;
       const next = { x: clamp(cur.x + Math.cos(a) * d, -105, 105), z: clamp(cur.z + Math.sin(a) * d, -90, 90), r };
       out.push({ t1: t + wait, t2: t + wait + shrink, from: cur, to: next, dmg }); t += wait + shrink; cur = next;
@@ -597,8 +602,8 @@ export class Game {
     const m = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 70, 96, 1, true), mat); m.visible = false; m.frustumCulled = false; m.renderOrder = 6; this.scene.add(m); return m;
   }
   _genLoot(seed) {
-    const rng = mulberry32(seed ^ 0x51ed270b), sp = this.world.spawns, total = LOOT_TABLE.reduce((a, b) => a + b[1], 0);
-    for (let i = 0; i < 115; i++) {
+    const rng = mulberry32(seed ^ 0x51ed270b), C = this.brArea, inC = C ? this.world.spawns.filter((s) => Math.hypot(s.x - C.x, s.z - C.z) < C.r * 0.95) : [], sp = inC.length > 20 ? inC : this.world.spawns, total = LOOT_TABLE.reduce((a, b) => a + b[1], 0);
+    for (let i = 0, N = this.meta.lootN || 115; i < N; i++) {
       let s = sp[(rng() * sp.length) | 0]; if (!s.in && rng() < 0.55) s = sp[(rng() * sp.length) | 0];
       let k = rng() * total, type = LOOT_TABLE[0][0]; for (const [t, w] of LOOT_TABLE) { if ((k -= w) <= 0) { type = t; break; } }
       const W = WEAPONS[type], info = W || LOOT_INFO[type], g = new THREE.Group();
@@ -640,7 +645,7 @@ export class Game {
         me.fireAt = this.time + W.rate; if (cur.ammo !== Infinity) cur.ammo--;
         this.sfx.play(W.snd, null, 0.9); this.vm.kick(W.kick || 0.5); if (cur.id === 'paper') this.vm.throwIt();
         const f = this.fwd(_v2);
-        if (W.kind === 'proj') this.fire(cur.id === 'dodge' ? 'dodge' : 'paper', c.x + f.x * 0.5, c.y + f.y * 0.5 - 0.1, c.z + f.z * 0.5, f.x, f.y + 0.02, f.z);
+        if (W.kind === 'proj') this.fire(cur.id, c.x + f.x * 0.5, c.y + f.y * 0.5 - 0.1, c.z + f.z * 0.5, f.x, f.y + 0.02, f.z);
         else { this.hitscan(W, cur.id, f); me.shot = (me.shot + 1) & 7; me.pitch = Math.min(1.5, me.pitch + (W.kick || 0.5) * 0.012); }
         if (cur.ammo <= 0 && cur.res > 0) { me.reloadEnd = this.time + W.reload; this.sfx.play('reload'); }
       }

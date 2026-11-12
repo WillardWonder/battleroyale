@@ -41,6 +41,13 @@ export function makeWeapon(kind) {
   } else if (kind === 'laser') { // pen-style laser pointer
     mb.geom(new THREE.CylinderGeometry(0.009, 0.009, 0.15, 10), M(0, 0, -0.03, Math.PI / 2), 0xb9bec6); mb.geom(new THREE.CylinderGeometry(0.0095, 0.0095, 0.03, 10), M(0, 0, 0.035, Math.PI / 2), 0x23272e);
     mb.geom(new THREE.CylinderGeometry(0.006, 0.009, 0.014, 10), M(0, 0, -0.112, Math.PI / 2), 0xff2d2d); box(0.004, 0.006, 0.05, M(0, 0.011, 0.01), 0x23272e);
+  } else if (kind === 'eraser') { // pink pearl eraser
+    box(0.06, 0.03, 0.12, M(0, 0, -0.02, 0, 0, 0.12), 0xff8fb3); box(0.061, 0.031, 0.02, M(0, 0, -0.07, 0, 0, 0.12), 0xf7b9cd);
+  } else if (kind === 'marker') { // dry-erase marker
+    mb.geom(new THREE.CylinderGeometry(0.012, 0.012, 0.11, 10), M(0, 0, -0.01, Math.PI / 2), 0xf5f5f2); mb.geom(new THREE.CylinderGeometry(0.0128, 0.0128, 0.04, 10), M(0, 0, -0.085, Math.PI / 2), 0x1f9d55);
+    mb.geom(new THREE.CylinderGeometry(0.012, 0.012, 0.012, 10), M(0, 0, 0.05, Math.PI / 2), 0x1f9d55); box(0.02, 0.002, 0.05, M(0, 0.0125, -0.01), 0x1f9d55);
+  } else if (kind === 'book') { // textbook
+    box(0.15, 0.04, 0.2, M(0, 0, -0.02), 0x2456a6); box(0.14, 0.032, 0.19, M(0.006, 0, -0.02), 0xf2efe6); box(0.15, 0.006, 0.2, M(0, 0.021, -0.02), 0x2456a6); box(0.09, 0.002, 0.05, M(0, 0.025, -0.05), 0xffd23f);
   } else mb.geom(new THREE.IcosahedronGeometry(0.06, 1), M(0, 0, 0), 0xf7f5ee);
   return new THREE.Mesh(mb.build(), charMat);
 }

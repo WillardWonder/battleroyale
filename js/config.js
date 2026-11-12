@@ -25,9 +25,12 @@ export const WEAPONS = {
   stapler: { name: 'Stapler', kind: 'hit', dmg: 8, rate: 0.085, mag: 30, spread: 0.032, reload: 1.8, range: 80, auto: true, snd: 'stapler', color: '#4aa8ff', kick: 0.35 },
   chalk: { name: 'Chalk Eraser', kind: 'hit', dmg: 7, pellets: 7, rate: 0.9, mag: 4, spread: 0.075, reload: 2.0, range: 34, snd: 'chalk', color: '#4aa8ff', kick: 1.4 },
   dodge: { name: 'Dodgeball', kind: 'proj', dmg: 50, splash: 3.6, splashDmg: 26, rate: 1.1, speed: 29, grav: 12, mag: 3, reload: 2.3, snd: 'dodge', color: '#c77dff', kick: 1.5 },
+  eraser: { name: 'Pink Eraser', kind: 'proj', dmg: 26, rate: 0.4, speed: 40, grav: 7, mag: 6, reload: 1.4, snd: 'throw', color: '#ff8fb3', kick: 0.5 },
+  marker: { name: 'Dry-Erase Marker', kind: 'hit', dmg: 12, rate: 0.16, mag: 18, spread: 0.02, reload: 1.5, range: 70, auto: true, snd: 'rubber', color: '#57d163', kick: 0.3 },
+  book: { name: 'Textbook', kind: 'proj', dmg: 58, rate: 1.25, speed: 24, grav: 14, mag: 2, reload: 2.0, snd: 'dodge', color: '#c77dff', kick: 1.3 },
   laser: { name: 'Laser Pointer', kind: 'hit', dmg: 55, rate: 1.2, mag: 4, spread: 0.0008, reload: 2.4, range: 260, zoom: 3.2, snd: 'laser', color: '#ffb703', kick: 1.0 },
 };
-export const LOOT_TABLE = [['rubber', 22], ['stapler', 16], ['chalk', 14], ['dodge', 7], ['laser', 6], ['drink', 22], ['pass', 12], ['ammo', 16]];
+export const LOOT_TABLE = [['rubber', 16], ['stapler', 13], ['chalk', 11], ['eraser', 14], ['marker', 12], ['book', 8], ['dodge', 7], ['laser', 6], ['drink', 22], ['pass', 12], ['ammo', 16]];
 export const LOOT_INFO = {
   drink: { name: 'Energy Drink', color: '#57d163', desc: '+40 health' }, pass: { name: 'Hall Pass', color: '#4aa8ff', desc: '+50 shield' }, ammo: { name: 'Supply Box', color: '#e8e8e8', desc: 'ammo for everything' },
 };
